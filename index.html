@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1575,6 +1576,67 @@
 </div>
 
 <!-- ============================================================
+     ADMIN SET PICKS MODAL
+============================================================ -->
+<div id="admin-picks-modal" class="modal-overlay" onclick="closeModalOnOverlay(event,'admin-picks-modal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✏️ Set Picks for Member</div>
+    <div class="modal-form">
+      <div class="form-group">
+        <label>Group</label>
+        <select id="admin-picks-group"></select>
+      </div>
+      <div class="form-group">
+        <label>Member</label>
+        <select id="admin-picks-user"></select>
+      </div>
+      <div class="form-group">
+        <label>🇺🇸 USA Player</label>
+        <input type="text" id="admin-pick-usa" placeholder="e.g. Scottie Scheffler" />
+      </div>
+      <div class="form-group">
+        <label>🇪🇺 Europe Player</label>
+        <input type="text" id="admin-pick-europe" placeholder="e.g. Rory McIlroy" />
+      </div>
+      <div class="form-group">
+        <label>🌏 Rest of World Player</label>
+        <input type="text" id="admin-pick-row" placeholder="e.g. Hideki Matsuyama" />
+      </div>
+      <p style="font-size:12px;color:var(--text-light);margin-top:-8px;">
+        Player names must match exactly as they appear in the tournament field.
+      </p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" style="flex:1" onclick="closeModal('admin-picks-modal')">Cancel</button>
+        <button class="btn btn-primary" style="flex:2" onclick="confirmAdminSetPicks()">Save Picks</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     ADMIN SET PICKS MODAL
+============================================================ -->
+<div id="admin-picks-modal" class="modal-overlay" onclick="closeModalOnOverlay(event,'admin-picks-modal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Set Picks for Member</div>
+    <div class="modal-form">
+      <div class="form-group"><label>Group</label><select id="admin-picks-group"></select></div>
+      <div class="form-group"><label>Member</label><select id="admin-picks-user"></select></div>
+      <div class="form-group"><label>USA Player</label><input type="text" id="admin-pick-usa" placeholder="e.g. Scottie Scheffler" /></div>
+      <div class="form-group"><label>Europe Player</label><input type="text" id="admin-pick-europe" placeholder="e.g. Rory McIlroy" /></div>
+      <div class="form-group"><label>Rest of World Player</label><input type="text" id="admin-pick-row" placeholder="e.g. Hideki Matsuyama" /></div>
+      <p style="font-size:12px;color:var(--text-light)">Names must match exactly as in the tournament field.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" style="flex:1" onclick="closeModal('admin-picks-modal')">Cancel</button>
+        <button class="btn btn-primary" style="flex:2" onclick="confirmAdminSetPicks()">Save Picks</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
      FIREBASE SDK
 ============================================================ -->
 <script type="module">
@@ -1956,10 +2018,112 @@
           <div class="item-sub">${g.memberCount || 1} member(s) · ${escHtml(g.ownerName)} · ${g.visibility}</div>
         </div>
         <div class="item-actions">
+          <button class="btn btn-secondary btn-sm" onclick="adminSetPicks('${gid}','${escHtml(g.name)}')">✏️ Picks</button>
           <button class="btn btn-danger btn-sm" onclick="adminDeleteGroup('${gid}','${escHtml(g.name)}')">Delete</button>
         </div>
       </div>
     `).join('');
+  };
+
+  window.adminSetPicks = async (gid, groupName) => {
+    // Load group members into modal
+    const gSnap = await get(ref(db, `groups/${gid}`));
+    if (!gSnap.exists()) return;
+    const g = gSnap.val();
+    const members = g.members || {};
+
+    // Populate group selector (just show current group)
+    const gSel = document.getElementById('admin-picks-group');
+    gSel.innerHTML = `<option value="${gid}">${escHtml(groupName)}</option>`;
+
+    // Populate member selector
+    const uSel = document.getElementById('admin-picks-user');
+    uSel.innerHTML = '<option value="">Loading...</option>';
+    const userEntries = await Promise.all(Object.keys(members).map(async uid => {
+      const uSnap = await get(ref(db, `users/${uid}`));
+      return { uid, name: uSnap.exists() ? uSnap.val().name : 'Unknown' };
+    }));
+    uSel.innerHTML = userEntries.map(u =>
+      `<option value="${u.uid}">${escHtml(u.name)}</option>`
+    ).join('');
+
+    // Store current gid for confirm
+    document.getElementById('admin-picks-modal').dataset.gid = gid;
+    openModal('admin-picks-modal');
+  };
+
+  window.confirmAdminSetPicks = async () => {
+    const gid     = document.getElementById('admin-picks-modal').dataset.gid;
+    const uid     = document.getElementById('admin-picks-user').value;
+    const usaName = document.getElementById('admin-pick-usa').value.trim();
+    const eurName = document.getElementById('admin-pick-europe').value.trim();
+    const rowName = document.getElementById('admin-pick-row').value.trim();
+
+    if (!uid)     return showToast('Please select a member.', 'error');
+    if (!usaName) return showToast('Please enter a USA player.', 'error');
+    if (!eurName) return showToast('Please enter a Europe player.', 'error');
+    if (!rowName) return showToast('Please enter a Rest of World player.', 'error');
+
+    // Try to match player names against loaded field
+    const players = JSON.parse(localStorage.getItem('wynn_players_cache_' + gid) || '[]');
+    const findPlayer = (name, region) => {
+      const match = players.find(p => p.name.toLowerCase() === name.toLowerCase() && p.region === region);
+      return match || { id: name.toLowerCase().replace(/\s+/g,'-'), name, country: region === 'usa' ? 'United States' : region === 'europe' ? 'Europe' : 'International' };
+    };
+
+    const picks = {
+      usa:     { ...findPlayer(usaName, 'usa'),    country: findPlayer(usaName, 'usa').country },
+      europe:  { ...findPlayer(eurName, 'europe'), country: findPlayer(eurName, 'europe').country },
+      row:     { ...findPlayer(rowName, 'row'),    country: findPlayer(rowName, 'row').country },
+      submitted: true,
+      savedAt:   Date.now(),
+      setByAdmin: true,
+    };
+
+    await set(ref(db, `groups/${gid}/picks/${uid}`), picks);
+    closeModal('admin-picks-modal');
+    showToast(`Picks saved for member! ✓`, 'success');
+  };
+
+  window.adminSetPicks = async (gid, groupName) => {
+    const gSnap = await get(ref(db, `groups/${gid}`));
+    if (!gSnap.exists()) return;
+    const g = gSnap.val();
+    const members = g.members || {};
+    const gSel = document.getElementById('admin-picks-group');
+    gSel.innerHTML = `<option value="${gid}">${escHtml(groupName)}</option>`;
+    const uSel = document.getElementById('admin-picks-user');
+    uSel.innerHTML = '<option value="">Loading...</option>';
+    const userEntries = await Promise.all(Object.keys(members).map(async uid => {
+      const uSnap = await get(ref(db, `users/${uid}`));
+      return { uid, name: uSnap.exists() ? uSnap.val().name : 'Unknown' };
+    }));
+    uSel.innerHTML = userEntries.map(u =>
+      `<option value="${u.uid}">${escHtml(u.name)}</option>`
+    ).join('');
+    document.getElementById('admin-picks-modal').dataset.gid = gid;
+    openModal('admin-picks-modal');
+  };
+
+  window.confirmAdminSetPicks = async () => {
+    const gid     = document.getElementById('admin-picks-modal').dataset.gid;
+    const uid     = document.getElementById('admin-picks-user').value;
+    const usaName = document.getElementById('admin-pick-usa').value.trim();
+    const eurName = document.getElementById('admin-pick-europe').value.trim();
+    const rowName = document.getElementById('admin-pick-row').value.trim();
+    if (!uid || !usaName || !eurName || !rowName) return showToast('Please fill all fields.', 'error');
+    const mkPick = (name, country) => ({ id: name.toLowerCase().replace(/ /g,'-'), name, country, submitted: true });
+    const picks = {
+      usa:    mkPick(usaName, 'United States'),
+      europe: mkPick(eurName, 'Europe'),
+      row:    mkPick(rowName, 'International'),
+      submitted: true,
+      savedAt: Date.now(),
+      setByAdmin: true,
+    };
+    await set(ref(db, `groups/${gid}/picks/${uid}`), picks);
+    closeModal('admin-picks-modal');
+    showToast('Picks saved! ✓', 'success');
   };
 
   window.deleteUser = async (uid, name) => {
