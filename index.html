@@ -2964,7 +2964,7 @@
           const scoreData = window._group.scores[pick.id];
           const toPar     = scoreData?.toPar ?? null;
           const isCut     = scoreData?.status === 'cut' || scoreData?.status === 'wd';
-          const numScore  = toPar ? parseInt(toPar) : null;
+          const numScore  = toPar ? parseScore(toPar) : null;
           if (numScore !== null) { total += numScore; hasScore = true; }
           const tagClass  = region === 'usa' ? 'tag-usa' : region === 'europe' ? 'tag-europe' : 'tag-row';
           const tagLabel  = region === 'usa' ? 'USA' : region === 'europe' ? 'EUR' : 'RoW';
@@ -3015,8 +3015,8 @@
         </div>` : (!locked && e.submitted ? `<div style="font-size:12px;color:var(--text-light);margin-top:8px;">Picks revealed after deadline</div>` : '');
 
       const scoreDisplay = e.totalScore !== null
-        ? `<div class="lb-score">${formatScore(e.totalScore)}</div>`
-        : `<div class="lb-score no-score">${e.submitted ? 'submitted' : 'awaiting'}</div>`;
+        ? `<div class="lb-score">${formatScore(String(e.totalScore))}</div>`
+        : `<div class="lb-score no-score">${e.submitted ? '–' : 'awaiting'}</div>`;
 
       return `
         <div class="leaderboard-item${e.isMe?' me':''}">
@@ -3116,11 +3116,19 @@
     showToast('Scores updated!', 'success');
   };
 
+  function parseScore(val) {
+    if (!val) return null;
+    const v = String(val).trim();
+    if (v === 'E' || v === 'e' || v === 'EVEN') return 0;
+    const n = parseInt(v);
+    return isNaN(n) ? null : n;
+  }
+
   function formatScore(val) {
-    const n = parseInt(val);
-    if (isNaN(n)) return val;
-    if (n === 0)  return '<span class="score-even">E</span>';
-    if (n > 0)    return `<span class="score-positive">+${n}</span>`;
+    const n = parseScore(val);
+    if (n === null) return '<span class="score-even">—</span>';
+    if (n === 0)    return '<span class="score-even">E</span>';
+    if (n > 0)      return `<span class="score-positive">+${n}</span>`;
     return `<span class="score-negative">${n}</span>`;
   }
 
@@ -3509,11 +3517,16 @@
   }
   window.showToast = showToast;
 
-  // Service Worker disabled temporarily
-  // Unregister any existing SW to clear cache
+  // Clear all service workers and caches
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(regs => {
       regs.forEach(reg => reg.unregister());
+    });
+  }
+  // Clear all caches so app always loads fresh
+  if ('caches' in window) {
+    caches.keys().then(keys => {
+      keys.forEach(key => caches.delete(key));
     });
   }
 
