@@ -2111,18 +2111,44 @@
     const eurName = document.getElementById('admin-pick-europe').value.trim();
     const rowName = document.getElementById('admin-pick-row').value.trim();
     if (!uid || !usaName || !eurName || !rowName) return showToast('Please fill all fields.', 'error');
-    const mkPick = (name, country) => ({ id: name.toLowerCase().replace(/ /g,'-'), name, country, submitted: true });
+
+    // Try to match player names against loaded field to get real ESPN IDs
+    const allPlayers = window._group?.players || [];
+    const findPlayer = (name, region) => {
+      // Try exact match first, then case-insensitive
+      const q = name.toLowerCase();
+      const match = allPlayers.find(p =>
+        p.region === region && p.name.toLowerCase() === q
+      ) || allPlayers.find(p =>
+        p.name.toLowerCase().includes(q) || q.includes(p.name.toLowerCase())
+      );
+      if (match) return { id: match.id, name: match.name, country: match.country };
+      // Fallback: use name as ID (scores won't work until field is reloaded)
+      return { id: name.toLowerCase().replace(/\s+/g,'-'), name, country: region === 'usa' ? 'United States' : region === 'europe' ? 'Europe' : 'International' };
+    };
+
     const picks = {
-      usa:    mkPick(usaName, 'United States'),
-      europe: mkPick(eurName, 'Europe'),
-      row:    mkPick(rowName, 'International'),
+      usa:    findPlayer(usaName, 'usa'),
+      europe: findPlayer(eurName, 'europe'),
+      row:    findPlayer(rowName, 'row'),
       submitted: true,
       savedAt: Date.now(),
       setByAdmin: true,
     };
+
+    // Warn if players not found in field
+    const notFound = [];
+    if (!allPlayers.find(p => p.id === picks.usa.id))    notFound.push(usaName);
+    if (!allPlayers.find(p => p.id === picks.europe.id)) notFound.push(eurName);
+    if (!allPlayers.find(p => p.id === picks.row.id))    notFound.push(rowName);
+
     await set(ref(db, `groups/${gid}/picks/${uid}`), picks);
     closeModal('admin-picks-modal');
-    showToast('Picks saved! ✓', 'success');
+    if (notFound.length) {
+      showToast(`Picks saved but some players not found in field: ${notFound.join(', ')}. Load player field first for accurate scores.`, 'error');
+    } else {
+      showToast('Picks saved with correct ESPN IDs ✓', 'success');
+    }
   };
 
   window.deleteUser = async (uid, name) => {
