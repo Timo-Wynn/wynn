@@ -2677,8 +2677,9 @@
                || (c.score && c.score !== '0' ? c.score : null)
                || null,
         status: c.status?.type?.name || c.status?.type?.shortDetail || null,
-        hole:   c.status?.period || c.status?.hole || null,
-        thru:   c.status?.thru || null,
+        thru: c.statistics?.find(s => s.name === 'thru' || s.name === 'holesPlayed')?.displayValue
+           || c.status?.thru
+           || null,
         _raw:   {
           flag: athlete.flag,
           statistics: c.statistics,
@@ -2692,9 +2693,8 @@
     if (players.length > 0) {
       console.log('[WYNN] Sample players with country data:');
       players.slice(0,3).forEach(p => {
-        console.log(`  ${p.name} | toPar="${p.toPar}" | status="${p.status}"`);
-        console.log(`    statistics:`, p._raw?.statistics);
-        console.log(`    score:`, p._raw?.score);
+        console.log(`  ${p.name} | toPar="${p.toPar}" | status="${p.status}" | thru="${p.thru}"`);
+        console.log(`    stats:`, p._raw?.statistics?.map(s => s.name + '=' + s.displayValue));
       });
       const counts = {usa:0,europe:0,row:0};
       players.forEach(p => counts[p.region]++);
@@ -2751,11 +2751,14 @@
           document.getElementById('gs-tournament-location').textContent = '📍 ' + (evt.competitions?.[0]?.venue?.fullName || '—');
           window._group.players = parseESPNPlayers(evt);
           window._group.scores  = {};
-          window._group.players.forEach(p => { window._group.scores[p.id] = { toPar: p.toPar, status: p.status, hole: p.hole, thru: p.thru }; });
+          window._group.players.forEach(p => { window._group.scores[p.id] = { toPar: p.toPar, status: p.status, thru: p.thru }; });
           await update(ref(db, `groups/${window._group.id}/tournamentScores`), window._group.scores);
           const nowTs = Date.now();
           await update(ref(db, `groups/${window._group.id}`), { scoresLastUpdated: nowTs });
           window._group.data.scoresLastUpdated = nowTs;
+          // Update UI immediately
+          const tsEl = document.getElementById('gs-last-updated');
+          if (tsEl) tsEl.textContent = '🔄 Scores updated: ' + new Date(nowTs).toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' }) + ' Uhr';
           localStorage.setItem('wynn_players_cache_' + window._group.id, JSON.stringify(window._group.players));
           // Store ESPN event ID so we can fetch final scores after tournament ends
           if (evt.id) {
@@ -3006,8 +3009,8 @@
           if (numScore !== null) { total += numScore; hasScore = true; }
           const tagClass  = region === 'usa' ? 'tag-usa' : region === 'europe' ? 'tag-europe' : 'tag-row';
           const tagLabel  = region === 'usa' ? 'USA' : region === 'europe' ? 'EUR' : 'RoW';
-          const hole      = scoreData?.thru ? `Thru ${scoreData.thru}` : scoreData?.hole ? `Hole ${scoreData.hole}` : null;
-          pickRows.push({ name: pick.name, country: pick.country, region, tagClass, tagLabel, toPar, isCut, hole });
+          const thru = scoreData?.thru || null;
+          pickRows.push({ name: pick.name, country: pick.country, region, tagClass, tagLabel, toPar, isCut, thru });
         });
         if (hasScore) totalScore = total;
       }
@@ -3049,7 +3052,7 @@
               <span class="pick-score-val${p.isCut?' cut':''}">
                 ${p.toPar ? formatScore(p.toPar) : '—'}
                 ${p.isCut ? '✂️' : ''}
-                ${p.hole && !p.isCut ? `<span style="font-size:10px;color:var(--text-light);font-weight:400">${p.hole}</span>` : ''}
+
               </span>
             </div>`).join('')}
         </div>` : (!locked && e.submitted ? `<div style="font-size:12px;color:var(--text-light);margin-top:8px;">Picks revealed after deadline</div>` : '');
