@@ -1372,6 +1372,7 @@
 
       <!-- Tab: Leaderboard -->
       <div id="gs-tab-leaderboard" class="group-tab-panel">
+        <div id="gs-last-updated" style="font-size:11px;color:var(--text-light);text-align:right;margin-bottom:8px;"></div>
         <div id="gs-leaderboard-list">
           <div class="empty-state"><div class="empty-icon">⛳</div><p>Loading leaderboard...</p></div>
         </div>
@@ -2426,8 +2427,13 @@
 
     renderGroupBanner();
 
-    try { await loadGroupPlayers(); } catch(e) { console.warn('[WYNN] loadGroupPlayers failed:', e); }
-    updateFieldStatus();
+    // Auto-load scores on open
+    try {
+      await loadGroupPlayers();
+      updateFieldStatus();
+      renderLeaderboard(); // re-render immediately with fresh scores
+    } catch(e) { console.warn('[WYNN] loadGroupPlayers failed:', e); }
+
     try { await loadMyPicks(gid); } catch(e) { console.warn('[WYNN] loadMyPicks failed:', e); }
 
     renderLeaderboard();
@@ -2670,6 +2676,8 @@
                || (c.score && c.score !== '0' ? c.score : null)
                || null,
         status: c.status?.type?.name || c.status?.type?.shortDetail || null,
+        hole:   c.status?.period || c.status?.hole || null,
+        thru:   c.status?.thru || null,
         _raw:   {
           flag: athlete.flag,
           statistics: c.statistics,
@@ -2742,8 +2750,11 @@
           document.getElementById('gs-tournament-location').textContent = '📍 ' + (evt.competitions?.[0]?.venue?.fullName || '—');
           window._group.players = parseESPNPlayers(evt);
           window._group.scores  = {};
-          window._group.players.forEach(p => { window._group.scores[p.id] = { toPar: p.toPar, status: p.status }; });
+          window._group.players.forEach(p => { window._group.scores[p.id] = { toPar: p.toPar, status: p.status, hole: p.hole, thru: p.thru }; });
           await update(ref(db, `groups/${window._group.id}/tournamentScores`), window._group.scores);
+          const nowTs = Date.now();
+          await update(ref(db, `groups/${window._group.id}`), { scoresLastUpdated: nowTs });
+          window._group.data.scoresLastUpdated = nowTs;
           localStorage.setItem('wynn_players_cache_' + window._group.id, JSON.stringify(window._group.players));
           // Store ESPN event ID so we can fetch final scores after tournament ends
           if (evt.id) {
@@ -2994,7 +3005,8 @@
           if (numScore !== null) { total += numScore; hasScore = true; }
           const tagClass  = region === 'usa' ? 'tag-usa' : region === 'europe' ? 'tag-europe' : 'tag-row';
           const tagLabel  = region === 'usa' ? 'USA' : region === 'europe' ? 'EUR' : 'RoW';
-          pickRows.push({ name: pick.name, country: pick.country, region, tagClass, tagLabel, toPar, isCut });
+          const hole      = scoreData?.thru ? `Thru ${scoreData.thru}` : scoreData?.hole ? `Hole ${scoreData.hole}` : null;
+          pickRows.push({ name: pick.name, country: pick.country, region, tagClass, tagLabel, toPar, isCut, hole });
         });
         if (hasScore) totalScore = total;
       }
@@ -3036,6 +3048,7 @@
               <span class="pick-score-val${p.isCut?' cut':''}">
                 ${p.toPar ? formatScore(p.toPar) : '—'}
                 ${p.isCut ? '✂️' : ''}
+                ${p.hole && !p.isCut ? `<span style="font-size:10px;color:var(--text-light);font-weight:400">${p.hole}</span>` : ''}
               </span>
             </div>`).join('')}
         </div>` : (!locked && e.submitted ? `<div style="font-size:12px;color:var(--text-light);margin-top:8px;">Picks revealed after deadline</div>` : '');
