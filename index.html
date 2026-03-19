@@ -2570,20 +2570,45 @@
   // Try multiple CORS proxies in sequence
   async function fetchWithProxy(url) {
     const proxies = [
-      u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-      u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-      u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-    ];
-    for (const makeUrl of proxies) {
-      try {
-        const res = await fetch(makeUrl(url), { signal: AbortSignal.timeout(10000) });
-        if (!res.ok) continue;
+      // allorigins /get returns JSON wrapper: { contents: "..." }
+      async (u) => {
+        const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`, { signal: AbortSignal.timeout(10000) });
+        if (!res.ok) throw new Error('allorigins failed');
+        const json = await res.json();
+        return JSON.parse(json.contents);
+      },
+      // codetabs direct
+      async (u) => {
+        const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`, { signal: AbortSignal.timeout(10000) });
+        if (!res.ok) throw new Error('codetabs failed');
         const text = await res.text();
-        if (!text || text.startsWith('<')) continue; // got HTML error page
+        if (!text || text.startsWith('<')) throw new Error('codetabs returned HTML');
         return JSON.parse(text);
-      } catch(e) { continue; }
+      },
+      // corsproxy.io
+      async (u) => {
+        const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(u)}`, { signal: AbortSignal.timeout(10000) });
+        if (!res.ok) throw new Error('corsproxy failed');
+        const text = await res.text();
+        if (!text || text.startsWith('<')) throw new Error('corsproxy returned HTML');
+        return JSON.parse(text);
+      },
+      // thingproxy
+      async (u) => {
+        const res = await fetch(`https://thingproxy.freeboard.io/fetch/${u}`, { signal: AbortSignal.timeout(10000) });
+        if (!res.ok) throw new Error('thingproxy failed');
+        const text = await res.text();
+        return JSON.parse(text);
+      },
+    ];
+    let lastErr;
+    for (const proxyFn of proxies) {
+      try {
+        const data = await proxyFn(url);
+        if (data) return data;
+      } catch(e) { lastErr = e; console.warn('[WYNN] Proxy failed:', e.message); continue; }
     }
-    throw new Error('All proxies failed');
+    throw new Error('All proxies failed: ' + lastErr?.message);
   }
 
   // Parse ESPN event into player list
@@ -2613,17 +2638,17 @@
         name:   athlete.displayName || c.displayName || '',
         country,
         region: getRegion(country),
-        toPar:  c.statistics?.find(s => s.name==='toPar' || s.name==='scoreToPar' || s.name==='score')?.displayValue
-               || c.score
-               || c.linescores?.[0]?.displayValue
+        toPar:  c.statistics?.find(s => s.name==='toPar')?.displayValue
+               || c.statistics?.find(s => s.name==='scoreToPar')?.displayValue
+               || c.statistics?.find(s => s.displayValue && (s.displayValue.startsWith('-') || s.displayValue.startsWith('+') || s.displayValue === 'E'))?.displayValue
+               || (c.score && c.score !== '0' ? c.score : null)
                || null,
         status: c.status?.type?.name || c.status?.type?.shortDetail || null,
         _raw:   {
           flag: athlete.flag,
-          statistics: c.statistics?.slice(0,5),
+          statistics: c.statistics,
           score: c.score,
           status: c.status,
-          linescores: c.linescores?.slice(0,2),
         }
       };
     }).filter(p => p.name && p.id);
@@ -2631,7 +2656,11 @@
     // Log sample to console for debugging
     if (players.length > 0) {
       console.log('[WYNN] Sample players with country data:');
-      players.slice(0,5).forEach(p => console.log(`  ${p.name} | toPar="${p.toPar}" | status="${p.status}" | raw:`, p._raw));
+      players.slice(0,3).forEach(p => {
+        console.log(`  ${p.name} | toPar="${p.toPar}" | status="${p.status}"`);
+        console.log(`    statistics:`, p._raw?.statistics);
+        console.log(`    score:`, p._raw?.score);
+      });
       const counts = {usa:0,europe:0,row:0};
       players.forEach(p => counts[p.region]++);
       console.log('[WYNN] Region counts:', counts);
