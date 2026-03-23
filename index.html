@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>WYNN</title>
-  <meta name="version" content="1773952740" />
+  <meta name="version" content="1773952741" />
   <!--
   ===== FIREBASE SECURITY RULES (paste into Firebase Console > Realtime Database > Rules) =====
   {
@@ -1516,18 +1516,15 @@
           <option value="season">Custom Season</option>
         </select>
       </div>
-      <!-- Single tournament picker (shown only for "single") -->
       <div id="tournament-picker-field" class="form-group">
         <label>Select Tournament</label>
         <select id="new-group-tournament">
           <option value="">Loading tournaments...</option>
         </select>
       </div>
-      <!-- Major Slam info (shown only for "major_slam") -->
       <div id="major-slam-info" class="hidden" style="background:var(--green-subtle);border-radius:var(--radius);padding:12px 14px;font-size:13px;color:var(--green);">
         🏆 Includes: The Masters · PGA Championship · U.S. Open · The Open · FedEx Playoffs
       </div>
-      <!-- Season info (shown only for "season") -->
       <div id="season-info" class="hidden" style="background:var(--cream-dark);border-radius:var(--radius);padding:12px 14px;font-size:13px;color:var(--text-mid);">
         📅 You can add tournaments to your season at any time from the group screen.
       </div>
@@ -1619,28 +1616,6 @@
 </div>
 
 <!-- ============================================================
-     ADMIN SET PICKS MODAL
-============================================================ -->
-<div id="admin-picks-modal" class="modal-overlay" onclick="closeModalOnOverlay(event,'admin-picks-modal')">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Set Picks for Member</div>
-    <div class="modal-form">
-      <div class="form-group"><label>Group</label><select id="admin-picks-group"></select></div>
-      <div class="form-group"><label>Member</label><select id="admin-picks-user"></select></div>
-      <div class="form-group"><label>USA Player</label><input type="text" id="admin-pick-usa" placeholder="e.g. Scottie Scheffler" /></div>
-      <div class="form-group"><label>Europe Player</label><input type="text" id="admin-pick-europe" placeholder="e.g. Rory McIlroy" /></div>
-      <div class="form-group"><label>Rest of World Player</label><input type="text" id="admin-pick-row" placeholder="e.g. Hideki Matsuyama" /></div>
-      <p style="font-size:12px;color:var(--text-light)">Names must match exactly as in the tournament field.</p>
-      <div class="modal-actions">
-        <button class="btn btn-secondary" style="flex:1" onclick="closeModal('admin-picks-modal')">Cancel</button>
-        <button class="btn btn-primary" style="flex:2" onclick="confirmAdminSetPicks()">Save Picks</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ============================================================
      FIREBASE SDK
 ============================================================ -->
 <script type="module">
@@ -1677,12 +1652,11 @@
   /* ----------------------------------------------------------
      STATE
   ---------------------------------------------------------- */
-  window._group = window._group || {}; // ensure accessible
-  window._group = window._group || {}; // expose for debugging
+  window._group = window._group || {};
   window._state = {
     user:            null,
     isSuperadmin:    false,
-    viewingAsUser:   false,   // superadmin toggled to user view
+    viewingAsUser:   false,
     groups:          {},
   };
 
@@ -1780,7 +1754,6 @@
     const file = event.target.files[0];
     if (!file) return;
     try {
-      // Resize image to max 200x200 before saving
       const base64 = await resizeImage(file, 200);
       await update(ref(db, `users/${auth.currentUser.uid}`), { avatarBase64: base64 });
       await updateProfile(auth.currentUser, { photoURL: base64 });
@@ -1827,7 +1800,6 @@
     loadTournamentPicker();
   };
 
-  // Format change handler — show/hide tournament picker & info panels
   window.onFormatChange = () => {
     const fmt = document.getElementById('new-group-format').value;
     document.getElementById('tournament-picker-field').classList.toggle('hidden', fmt !== 'single');
@@ -1835,8 +1807,6 @@
     document.getElementById('season-info').classList.toggle('hidden', fmt !== 'season');
   };
 
-  // Load upcoming PGA tournaments into the picker
-  // Full 2026 PGA Tour schedule (static fallback)
   const PGA_SCHEDULE_2026 = [
     { id: 'sony-open-2026',        name: 'Sony Open in Hawaii',             date: '2026-01-08' },
     { id: 'american-express-2026', name: 'The American Express',            date: '2026-01-15' },
@@ -1871,29 +1841,24 @@
     { id: 'tour-champ-2026',       name: 'TOUR Championship',               date: '2026-08-27' },
   ];
 
-  // Shared function: fetch schedule from ESPN + merge with static list
   window.fetchPGASchedule = async () => {
     let list = [...PGA_SCHEDULE_2026];
     try {
       const PROXY = 'https://corsproxy.io/?';
-      // ESPN schedule endpoint with full year
       const url = 'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard?dates=20260101-20261231&limit=50';
       const res  = await fetch(PROXY + encodeURIComponent(url));
       const data = await res.json();
       const events = data?.events || [];
       if (events.length > 0) {
-        // Merge ESPN events (they have real IDs and dates)
         const espnList = events.map(e => ({
           id:   e.id,
           name: e.name,
           date: e.date?.split('T')[0] || '',
           live: e.status?.type?.state === 'in' || e.status?.type?.state === 'pre',
         }));
-        // Deduplicate by name similarity — prefer ESPN data
         list = espnList;
       }
     } catch(e) { /* use static fallback */ }
-    // Filter to upcoming + last 3 days
     const cutoff = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
     return list
       .filter(t => t.date && new Date(t.date) >= cutoff)
@@ -1926,7 +1891,6 @@
     if (!name) return showToast('Please enter a group name.', 'error');
     if (name.length > 30) return showToast('Group name must be 30 characters or less.', 'error');
 
-    // For single tournament, require a selection
     let tournament = null;
     if (format === 'single') {
       const sel = document.getElementById('new-group-tournament');
@@ -1935,7 +1899,6 @@
       tournament = { id: tid, name: sel.options[sel.selectedIndex].dataset.name || sel.options[sel.selectedIndex].text };
     }
 
-    // Check for duplicate group name
     try {
       const allSnap = await get(ref(db, 'groups'));
       if (allSnap.exists()) {
@@ -1984,7 +1947,6 @@
     }
   };
 
-  // Show/hide stake field
   document.getElementById('new-group-money').addEventListener('change', (e) => {
     document.getElementById('stake-field').classList.toggle('hidden', e.target.value !== 'yes');
   });
@@ -2030,66 +1992,6 @@
   };
 
   window.adminSetPicks = async (gid, groupName) => {
-    // Load group members into modal
-    const gSnap = await get(ref(db, `groups/${gid}`));
-    if (!gSnap.exists()) return;
-    const g = gSnap.val();
-    const members = g.members || {};
-
-    // Populate group selector (just show current group)
-    const gSel = document.getElementById('admin-picks-group');
-    gSel.innerHTML = `<option value="${gid}">${escHtml(groupName)}</option>`;
-
-    // Populate member selector
-    const uSel = document.getElementById('admin-picks-user');
-    uSel.innerHTML = '<option value="">Loading...</option>';
-    const userEntries = await Promise.all(Object.keys(members).map(async uid => {
-      const uSnap = await get(ref(db, `users/${uid}`));
-      return { uid, name: uSnap.exists() ? uSnap.val().name : 'Unknown' };
-    }));
-    uSel.innerHTML = userEntries.map(u =>
-      `<option value="${u.uid}">${escHtml(u.name)}</option>`
-    ).join('');
-
-    // Store current gid for confirm
-    document.getElementById('admin-picks-modal').dataset.gid = gid;
-    openModal('admin-picks-modal');
-  };
-
-  window.confirmAdminSetPicks = async () => {
-    const gid     = document.getElementById('admin-picks-modal').dataset.gid;
-    const uid     = document.getElementById('admin-picks-user').value;
-    const usaName = document.getElementById('admin-pick-usa').value.trim();
-    const eurName = document.getElementById('admin-pick-europe').value.trim();
-    const rowName = document.getElementById('admin-pick-row').value.trim();
-
-    if (!uid)     return showToast('Please select a member.', 'error');
-    if (!usaName) return showToast('Please enter a USA player.', 'error');
-    if (!eurName) return showToast('Please enter a Europe player.', 'error');
-    if (!rowName) return showToast('Please enter a Rest of World player.', 'error');
-
-    // Try to match player names against loaded field
-    const players = JSON.parse(localStorage.getItem('wynn_players_cache_' + gid) || '[]');
-    const findPlayer = (name, region) => {
-      const match = players.find(p => p.name.toLowerCase() === name.toLowerCase() && p.region === region);
-      return match || { id: name.toLowerCase().replace(/\s+/g,'-'), name, country: region === 'usa' ? 'United States' : region === 'europe' ? 'Europe' : 'International' };
-    };
-
-    const picks = {
-      usa:     { ...findPlayer(usaName, 'usa'),    country: findPlayer(usaName, 'usa').country },
-      europe:  { ...findPlayer(eurName, 'europe'), country: findPlayer(eurName, 'europe').country },
-      row:     { ...findPlayer(rowName, 'row'),    country: findPlayer(rowName, 'row').country },
-      submitted: true,
-      savedAt:   Date.now(),
-      setByAdmin: true,
-    };
-
-    await set(ref(db, `groups/${gid}/picks/${uid}`), picks);
-    closeModal('admin-picks-modal');
-    showToast(`Picks saved for member! ✓`, 'success');
-  };
-
-  window.adminSetPicks = async (gid, groupName) => {
     const gSnap = await get(ref(db, `groups/${gid}`));
     if (!gSnap.exists()) return;
     const g = gSnap.val();
@@ -2117,10 +2019,8 @@
     const rowName = document.getElementById('admin-pick-row').value.trim();
     if (!uid || !usaName || !eurName || !rowName) return showToast('Please fill all fields.', 'error');
 
-    // Try to match player names against loaded field to get real ESPN IDs
     const allPlayers = window._group?.players || [];
     const findPlayer = (name, region) => {
-      // Try exact match first, then case-insensitive
       const q = name.toLowerCase();
       const match = allPlayers.find(p =>
         p.region === region && p.name.toLowerCase() === q
@@ -2128,7 +2028,6 @@
         p.name.toLowerCase().includes(q) || q.includes(p.name.toLowerCase())
       );
       if (match) return { id: match.id, name: match.name, country: match.country };
-      // Fallback: use name as ID (scores won't work until field is reloaded)
       return { id: name.toLowerCase().replace(/\s+/g,'-'), name, country: region === 'usa' ? 'United States' : region === 'europe' ? 'Europe' : 'International' };
     };
 
@@ -2141,7 +2040,6 @@
       setByAdmin: true,
     };
 
-    // Warn if players not found in field
     const notFound = [];
     if (!allPlayers.find(p => p.id === picks.usa.id))    notFound.push(usaName);
     if (!allPlayers.find(p => p.id === picks.europe.id)) notFound.push(eurName);
@@ -2213,8 +2111,6 @@
       </div>`;
   }
 
-  // openGroup defined in group screen section below
-
   /* ----------------------------------------------------------
      AUTH STATE LISTENER
   ---------------------------------------------------------- */
@@ -2223,7 +2119,6 @@
     if (user) {
       window._state.user         = user;
       window._state.isSuperadmin = user.email === SUPERADMIN_EMAIL;
-      // Ensure superadmin flag is set in DB
       if (window._state.isSuperadmin) {
         await update(ref(db, `users/${user.uid}`), { isSuperadmin: true });
       }
@@ -2254,10 +2149,8 @@
     document.getElementById('edit-name').value                  = name;
     document.getElementById('home-greeting').textContent        = `Welcome back, ${name.split(' ')[0]}!`;
 
-    // Avatar photo — show in profile header and nav
     const photoURL = user.photoURL;
     if (photoURL && photoURL.startsWith('data:')) {
-      // Profile header
       const avatarLarge = document.getElementById('profile-avatar-large');
       let imgLarge = avatarLarge.querySelector('img');
       if (!imgLarge) {
@@ -2267,7 +2160,6 @@
       }
       imgLarge.src = photoURL;
       document.getElementById('profile-avatar-initials').style.display = 'none';
-      // Nav avatar
       const navAvatar = document.getElementById('nav-avatar');
       navAvatar.textContent = '';
       navAvatar.style.overflow = 'hidden';
@@ -2293,12 +2185,8 @@
   function applyViewMode() {
     const isSA          = window._state.isSuperadmin;
     const viewingAsUser = window._state.viewingAsUser;
-
-    // Toggle banners
     document.getElementById('view-toggle-banner').classList.toggle('hidden', !isSA || viewingAsUser);
     document.getElementById('user-view-banner').classList.toggle('hidden', !isSA || !viewingAsUser);
-
-    // Toggle admin nav item & badge
     const showAdmin = isSA && !viewingAsUser;
     document.getElementById('nav-admin').classList.toggle('hidden', !showAdmin);
     document.getElementById('nav-superadmin-badge').classList.toggle('hidden', !showAdmin);
@@ -2338,19 +2226,14 @@
      GROUP SCREEN
   ========================================================== */
 
-  // Region classification
-  // ESPN returns country names in various formats — match broadly
   function getRegion(country) {
     if (!country) return 'row';
     const c = country.toLowerCase().trim();
 
-    // USA — full names, abbreviations, and ESPN flag codes
     const usaVariants = ['usa','us','u.s.','united states','united states of america'];
     if (usaVariants.includes(c)) return 'usa';
 
-    // Europe — country names AND 3-letter ESPN flag codes
     const europeVariants = [
-      // Full names
       'england','scotland','ireland','northern ireland','wales','great britain',
       'spain','germany','france','sweden','norway','denmark','belgium','netherlands',
       'holland','italy','austria','switzerland','finland','czech republic','czechia',
@@ -2359,7 +2242,6 @@
       'north macedonia','moldova','ukraine','belarus','lithuania','latvia','estonia',
       'luxembourg','malta','cyprus','iceland','liechtenstein','andorra','monaco',
       'san marino',
-      // ESPN 3-letter codes
       'eng','sco','irl','nir','wal','esp','ger','fra','swe','nor','den',
       'bel','ned','ita','aut','sui','fin','cze','svk','pol','hun','rou',
       'bul','gre','por','srb','cro','svn','bih','mne','alb','mkd','ltu',
@@ -2370,25 +2252,23 @@
     return 'row';
   }
 
-  // Current group state
   window._group = {
     id: null, data: null,
-    players: [],          // [{name, country, region, id}]
+    players: [],
     myPicks: { usa: null, europe: null, row: null },
-    usedPicksThisSeason: [],  // player IDs used in earlier tournaments this season
+    usedPicksThisSeason: [],
     deadlinePassed: false,
-    scores: {},           // { playerId: { score, toPar, cut, wd } }
-    memberData: {},       // { uid: { name, picks, trophies } }
+    scores: {},
+    memberData: {},
   };
 
   window.openGroup = async (gid) => {
     const snap = await get(ref(db, `groups/${gid}`));
     if (!snap.exists()) { showToast('Group not found.', 'error'); return; }
     window._group.id   = gid;
-    window._group.data = JSON.parse(JSON.stringify(snap.val())); // deep copy
+    window._group.data = JSON.parse(JSON.stringify(snap.val()));
     window._group.myPicks = { usa: null, europe: null, row: null };
 
-    // Show group screen
     ['home','profile','admin'].forEach(p => {
       document.getElementById(`page-${p}`).classList.add('hidden');
     });
@@ -2400,7 +2280,6 @@
 
     switchGroupTab('leaderboard');
 
-    // Fix deadline if not stored yet
     try {
       if (!window._group.data.deadlineTimestamp) {
         const g = window._group.data;
@@ -2416,7 +2295,6 @@
       }
     } catch(e) { console.warn('[WYNN] Deadline fix failed:', e); }
 
-    // For season: auto-set activeTournament if not set
     try {
       if (window._group.data.format === 'season' && !window._group.data.activeTournament) {
         const tournaments = window._group.data.seasonTournaments || [];
@@ -2431,11 +2309,10 @@
 
     renderGroupBanner();
 
-    // Auto-load scores on open
     try {
       await loadGroupPlayers();
       updateFieldStatus();
-      renderLeaderboard(); // re-render immediately with fresh scores
+      renderLeaderboard();
     } catch(e) { console.warn('[WYNN] loadGroupPlayers failed:', e); }
 
     try { await loadMyPicks(gid); } catch(e) { console.warn('[WYNN] loadMyPicks failed:', e); }
@@ -2443,7 +2320,6 @@
     renderLeaderboard();
     renderMembers();
 
-    // Start auto-refresh every 10 minutes
     if (window._autoRefreshTimer) clearInterval(window._autoRefreshTimer);
     window._autoRefreshTimer = setInterval(async () => {
       await loadGroupPlayers();
@@ -2452,15 +2328,12 @@
       console.log('[WYNN] Auto-refreshed scores at', new Date().toLocaleTimeString());
     }, 10 * 60 * 1000);
 
-    // Show history tab for multi-tournament formats
     const fmt = window._group.data.format;
     document.querySelectorAll('.gs-history-tab').forEach(t => t.classList.toggle('hidden', fmt === 'single'));
-    // For season mode, also auto-open history tab so owner can add tournaments
     if (fmt === 'season') renderHistory();
   };
 
   window.leaveGroupScreen = () => {
-    // Clear auto-refresh timer
     if (window._autoRefreshTimer) {
       clearInterval(window._autoRefreshTimer);
       window._autoRefreshTimer = null;
@@ -2485,7 +2358,6 @@
     const g = window._group.data;
     document.getElementById('gs-group-name').textContent = g.name;
 
-    // Tournament name
     let tName = '—';
     if (g.format === 'single' && g.tournament?.name) {
       tName = g.tournament.name;
@@ -2497,13 +2369,11 @@
     }
     document.getElementById('gs-tournament-name').textContent = tName;
 
-    // Deadline check — use stored timestamp, fallback: if tournament already started, deadline passed
     const now      = new Date();
     let deadline   = getDeadline();
-    // Extra safety: if tournament start date is in the past, deadline definitely passed
     const tStartDate = g.tournament?.date || g.activeTournament?.date;
     if (tStartDate && new Date(tStartDate) < now && deadline > now) {
-      deadline = new Date(now.getTime() - 1); // force expired
+      deadline = new Date(now.getTime() - 1);
     }
     window._group.deadlinePassed = now > deadline;
     const chip = document.getElementById('gs-deadline-chip');
@@ -2515,16 +2385,13 @@
       : `⏰ Deadline: ${deadlineDateStr}`;
     chip.classList.toggle('expired', window._group.deadlinePassed);
 
-    // Format badge
     const fmtMap = { single: 'Single Tournament', major_slam: 'Major Slam', season: 'Custom Season' };
     document.getElementById('gs-format-badge').textContent = '🏆 ' + (fmtMap[g.format] || g.format);
 
-    // Money game indicator
     if (g.isMoney && g.stake) {
       document.getElementById('gs-format-badge').textContent += ` · 💰 ${g.stake}`;
     }
 
-    // Mode description
     const modeTexts = {
       single:     '🌍 Pick 1 player from USA, 1 from Europe, 1 from Rest of World. Lowest combined score wins. Missed cut = score frozen ✂️',
       major_slam: '🌍 Pick 3 players (USA · Europe · RoW) per Major. Each player can only be picked once per season across all 5 events. Lowest combined score wins.',
@@ -2533,39 +2400,38 @@
     const modeEl = document.getElementById('gs-mode-text');
     if (modeEl) modeEl.textContent = modeTexts[g.format] || '';
 
-    // Show "End Tournament" button for owner when tournament is active
+    // ── FIX: Show "End Tournament" button correctly for all formats ──
     const uid      = auth.currentUser?.uid;
     const isOwner  = uid === g.ownerId || window._state.isSuperadmin;
-    const hasActive = g.format === 'single'
-      ? true  // single tournament is always active until ended
-      : (g.activeTournament && !g.activeTournament.completed);
+
+    let hasActive;
+    if (g.format === 'single') {
+      // Single: active as long as tournament has NOT been ended (tournamentEnded flag)
+      hasActive = !g.tournamentEnded;
+    } else {
+      // Season / Major Slam: active if activeTournament exists and not completed
+      hasActive = !!(g.activeTournament && !g.activeTournament.completed);
+    }
+
     const endSection = document.getElementById('gs-end-tournament-section');
     if (endSection) endSection.classList.toggle('hidden', !isOwner || !hasActive);
   }
 
   window.getNextDeadline = function() {
-    // Always Wednesday 22:00 CET (UTC+1 standard / UTC+2 summer)
     const now = new Date();
-
-    // Detect CET offset: last Sunday in March → summer time (UTC+2), last Sunday in Oct → winter (UTC+1)
     const cetOffset = isCETSummerTime(now) ? 2 : 1;
-
-    // Build this Wednesday 22:00 CET in UTC
     const d = new Date(now);
     d.setUTCHours(0, 0, 0, 0);
-    const day  = d.getUTCDay(); // 0=Sun ... 3=Wed
+    const day  = d.getUTCDay();
     const daysUntilWed = (3 - day + 7) % 7;
     d.setUTCDate(d.getUTCDate() + daysUntilWed);
-    d.setUTCHours(22 - cetOffset, 0, 0, 0); // 22:00 CET = 21:00 UTC+1 or 20:00 UTC+2
-
-    // If that deadline is already in the past, jump to NEXT Wednesday
+    d.setUTCHours(22 - cetOffset, 0, 0, 0);
     if (d <= now) {
       d.setUTCDate(d.getUTCDate() + 7);
     }
     return d;
   }
 
-  // Calculate deadline = Wednesday 22:00 CET before tournament start
   window.calcDeadlineForTournament = function(tournamentDateStr) {
     const tDate = tournamentDateStr ? new Date(tournamentDateStr + 'T12:00:00Z') : new Date();
     const wed = new Date(tDate);
@@ -2577,18 +2443,15 @@
     return wed;
   };
 
-  // Get stored deadline — fixed per tournament
   window.getDeadline = function() {
     const g = window._group?.data;
     if (g?.deadlineTimestamp) return new Date(g.deadlineTimestamp);
-    // No deadline stored → check if tournament already started
     const tStart = g?.tournament?.date || g?.activeTournament?.date;
-    if (tStart && new Date(tStart + 'T00:00:00Z') < new Date()) return new Date(0); // passed
-    return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // future = open
+    if (tStart && new Date(tStart + 'T00:00:00Z') < new Date()) return new Date(0);
+    return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   };
 
   window.isCETSummerTime = function(date) {
-    // Summer time: last Sunday March → last Sunday October
     const year = date.getUTCFullYear();
     const lastSunMarch = new Date(Date.UTC(year, 2, 31));
     lastSunMarch.setUTCDate(31 - lastSunMarch.getUTCDay());
@@ -2599,21 +2462,14 @@
     return date >= lastSunMarch && date < lastSunOct;
   }
 
-  function formatDeadline(d) {
-    return d.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' }) + ', 22:00 CET';
-  }
-
-  // Try multiple CORS proxies in sequence
   async function fetchWithProxy(url) {
     const proxies = [
-      // allorigins /get returns JSON wrapper: { contents: "..." }
       async (u) => {
         const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`, { signal: AbortSignal.timeout(10000) });
         if (!res.ok) throw new Error('allorigins failed');
         const json = await res.json();
         return JSON.parse(json.contents);
       },
-      // codetabs direct
       async (u) => {
         const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`, { signal: AbortSignal.timeout(10000) });
         if (!res.ok) throw new Error('codetabs failed');
@@ -2621,7 +2477,6 @@
         if (!text || text.startsWith('<')) throw new Error('codetabs returned HTML');
         return JSON.parse(text);
       },
-      // corsproxy.io
       async (u) => {
         const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(u)}`, { signal: AbortSignal.timeout(10000) });
         if (!res.ok) throw new Error('corsproxy failed');
@@ -2629,7 +2484,6 @@
         if (!text || text.startsWith('<')) throw new Error('corsproxy returned HTML');
         return JSON.parse(text);
       },
-      // thingproxy
       async (u) => {
         const res = await fetch(`https://thingproxy.freeboard.io/fetch/${u}`, { signal: AbortSignal.timeout(10000) });
         if (!res.ok) throw new Error('thingproxy failed');
@@ -2647,17 +2501,12 @@
     throw new Error('All proxies failed: ' + lastErr?.message);
   }
 
-  // Parse ESPN event into player list
   function parseESPNPlayers(evt) {
     const comps = evt.competitions?.[0]?.competitors || [];
     const players = comps.map(c => {
-      // ESPN can return country in multiple fields — try all of them
       const athlete = c.athlete || {};
-      // ESPN golf returns country in flag.alt (e.g. "United States") or flag href
-      // Try every possible field
       const flag = athlete.flag || athlete.countryFlag || c.countryFlag || {};
       const flagHref = flag.href || flag.src || '';
-      // Extract country code from flag URL e.g. ".../countries/500/usa.png" → "usa"
       const flagCode = flagHref.match(/countries\/\d+\/([a-z]+)\.png/i)?.[1]?.toLowerCase() || '';
       const country =
         flag.alt ||
@@ -2668,7 +2517,6 @@
         athlete.country ||
         flagCode ||
         '';
-      // Log first few to help debug
       return {
         id:     String(athlete.id || c.id || ''),
         name:   athlete.displayName || c.displayName || '',
@@ -2692,7 +2540,6 @@
       };
     }).filter(p => p.name && p.id);
 
-    // Log sample to console for debugging
     if (players.length > 0) {
       console.log('[WYNN] Sample players with country data:');
       players.slice(0,3).forEach(p => {
@@ -2706,7 +2553,6 @@
     return players;
   }
 
-  // Update field status indicator
   function updateFieldStatus() {
     const count = window._group.players?.length || 0;
     const el    = document.getElementById('gs-field-count');
@@ -2722,7 +2568,6 @@
     }
   }
 
-  // Manual button trigger
   window.loadPlayerFieldManual = async () => {
     const btn = document.getElementById('gs-load-field-btn');
     const el  = document.getElementById('gs-field-count');
@@ -2739,7 +2584,6 @@
   };
 
   async function loadGroupPlayers(showErrors = false) {
-    // 1. Try ESPN scoreboard — always shows current/next PGA tournament
     const ESPN_URLS = [
       'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard',
       'https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events?limit=1',
@@ -2759,11 +2603,9 @@
           const nowTs = Date.now();
           await update(ref(db, `groups/${window._group.id}`), { scoresLastUpdated: nowTs });
           window._group.data.scoresLastUpdated = nowTs;
-          // Update UI immediately
           const tsEl = document.getElementById('gs-last-updated');
           if (tsEl) tsEl.textContent = '🔄 Scores updated: ' + new Date(nowTs).toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' }) + ' Uhr';
           localStorage.setItem('wynn_players_cache_' + window._group.id, JSON.stringify(window._group.players));
-          // Store ESPN event ID so we can fetch final scores after tournament ends
           if (evt.id) {
             await update(ref(db, `groups/${window._group.id}`), { espnEventId: String(evt.id) });
             window._group.data.espnEventId = String(evt.id);
@@ -2774,12 +2616,10 @@
       } catch(e) { continue; }
     }
 
-    // 2. Fallback: Firebase cache
     try {
       const scoreSnap = await get(ref(db, `groups/${window._group.id}/tournamentScores`));
       if (scoreSnap.exists()) {
         window._group.scores = scoreSnap.val();
-        // Build minimal player list from score keys
         const cached = localStorage.getItem('wynn_players_cache_' + window._group.id);
         if (cached) {
           window._group.players = JSON.parse(cached);
@@ -2789,7 +2629,6 @@
       }
     } catch(e) {}
 
-    // 3. Last resort: generic localStorage cache
     const cached = localStorage.getItem('wynn_players_cache_' + window._group.id)
                 || localStorage.getItem('wynn_players_cache');
     if (cached) {
@@ -2812,7 +2651,6 @@
         row:    p.row    || null,
       };
     }
-    // Load used picks for season/major_slam
     const fmt = window._group.data.format;
     if (fmt === 'season' || fmt === 'major_slam') {
       const histSnap = await get(ref(db, `groups/${gid}/history`));
@@ -2875,7 +2713,6 @@
     const dropdown = document.getElementById(`dropdown-${region}`);
     const allPlayers = window._group.players || [];
 
-    // If no players loaded at all
     if (!allPlayers.length) {
       dropdown.innerHTML = `<div style="padding:12px 14px;font-size:13px;color:var(--text-light);">No players loaded yet — use the button above ↑</div>`;
       dropdown.classList.remove('hidden');
@@ -2895,7 +2732,6 @@
     }
 
     if (!players.length) {
-      // Debug: show what regions we DO have
       const counts = {usa:0, europe:0, row:0};
       allPlayers.forEach(p => counts[p.region] = (counts[p.region]||0)+1);
       dropdown.innerHTML = `<div style="padding:12px 14px;font-size:13px;color:var(--text-light);">No ${region} players found. (USA: ${counts.usa}, EUR: ${counts.europe}, RoW: ${counts.row})</div>`;
@@ -2928,7 +2764,6 @@
     renderSelectedPick(region);
   };
 
-  // Close dropdowns on outside click
   document.addEventListener('click', (e) => {
     ['usa','europe','row'].forEach(r => {
       const wrap = document.getElementById(`slot-${r}`);
@@ -2969,7 +2804,6 @@
     let snap;
     try { snap = await get(ref(db, `groups/${gid}/picks`)); } catch(e) { snap = null; }
     const members = window._group.data?.members || {};
-    // Calculate locked independently — don't rely on renderGroupBanner having run
     const now = new Date();
     const dl  = window._group.data?.deadlineTimestamp
       ? new Date(window._group.data.deadlineTimestamp)
@@ -2977,18 +2811,15 @@
     const tStart = window._group.data?.tournament?.date
       || window._group.data?.activeTournament?.date;
     const locked = dl ? now > dl : (tStart ? new Date(tStart) < now : false);
-    // Also update the global flag so banner stays in sync
     window._group.deadlinePassed = locked;
 
     const picksData = snap.exists() ? snap.val() : {};
 
-    // Load scores from Firebase if not in memory
     if (!window._group.scores || Object.keys(window._group.scores).length === 0) {
       const scoreSnap = await get(ref(db, `groups/${gid}/tournamentScores`));
       if (scoreSnap.exists()) window._group.scores = scoreSnap.val();
     }
 
-    // Build leaderboard entries for ALL members (even without picks)
     const entries = await Promise.all(Object.keys(members).map(async memberId => {
       const userSnap = await get(ref(db, `users/${memberId}`));
       const userData = userSnap.exists() ? userSnap.val() : { name: 'Unknown' };
@@ -2999,7 +2830,6 @@
       let pickRows   = [];
 
       if (picks && locked) {
-        // Calculate scores
         let total = 0;
         let hasScore = false;
         ['usa','europe','row'].forEach(region => {
@@ -3021,7 +2851,6 @@
       return { memberId, name: userData.name, picks, submitted: picks?.submitted, totalScore, pickRows, trophies, isMe: memberId === uid };
     }));
 
-    // Sort: by score (lowest first), then submitted, then name
     entries.sort((a, b) => {
       if (a.totalScore !== null && b.totalScore !== null) return a.totalScore - b.totalScore;
       if (a.totalScore !== null) return -1;
@@ -3031,7 +2860,6 @@
       return a.name.localeCompare(b.name);
     });
 
-    // Assign ranks (handle ties)
     let rank = 1;
     entries.forEach((e, i) => {
       if (i > 0 && entries[i-1].totalScore !== null && e.totalScore === entries[i-1].totalScore) {
@@ -3055,7 +2883,6 @@
               <span class="pick-score-val${p.isCut?' cut':''}">
                 ${p.toPar ? formatScore(p.toPar) : '—'}
                 ${p.isCut ? '✂️' : ''}
-
               </span>
             </div>`).join('')}
         </div>` : (!locked && e.submitted ? `<div style="font-size:12px;color:var(--text-light);margin-top:8px;">Picks revealed after deadline</div>` : '');
@@ -3117,13 +2944,11 @@
       </div>`;
     }).join('');
 
-    // Invite code (owner only, private groups only)
     const invSection = document.getElementById('gs-invite-section');
     const showInvite = g.visibility === 'private' && uid === g.ownerId;
     invSection.classList.toggle('hidden', !showInvite);
     if (showInvite) document.getElementById('gs-invite-code').textContent = g.inviteCode || '—';
 
-    // Leave button (non-owner)
     const joinSection = document.getElementById('gs-join-section');
     joinSection.classList.toggle('hidden', uid === g.ownerId);
   }
@@ -3152,9 +2977,6 @@
     navigator.clipboard?.writeText(code).then(() => showToast('Invite code copied!', 'success'));
   };
 
-  // renderHistory defined in season management section above
-
-  // Refresh scores manually (group owner only)
   window.refreshGroupScores = async () => {
     showToast('Refreshing scores...', 'info');
     await loadGroupPlayers();
@@ -3203,7 +3025,6 @@
   window.openAddTournamentModal = async () => {
     openModal('add-tournament-modal');
     await loadTournamentPicker('add-tournament-select');
-    // Filter out already-added tournaments
     const g = window._group.data;
     const added = (g.seasonTournaments || []).map(t => t.id);
     const sel   = document.getElementById('add-tournament-select');
@@ -3233,14 +3054,12 @@
   window.setActiveTournament = async (id, name, date) => {
     const gid        = window._group.id;
     const g          = window._group.data;
-    // Can only activate if no active tournament currently running
     if (g.activeTournament?.id && !g.activeTournament?.completed) {
       showToast('End the current tournament first before activating a new one.', 'error');
       return;
     }
     const tournament = { id, name, date, completed: false };
     await update(ref(db, `groups/${gid}`), { activeTournament: tournament });
-    // Reset picks for the new tournament
     await update(ref(db, `groups/${gid}`), { picks: null });
     window._group.data.activeTournament = tournament;
     showToast(`"${name}" is now active — picks open! 🎉`, 'success');
@@ -3249,18 +3068,30 @@
     renderLeaderboard();
   };
 
+  /* ── FIX: endTournament handles all formats correctly ───── */
   window.endTournament = async () => {
     const gid = window._group.id;
     const g   = window._group.data;
-    if (!g.activeTournament) { showToast('No active tournament.', 'error'); return; }
-    if (!confirm(`End "${g.activeTournament.name}" and save final results?`)) return;
 
-    // Load final scores — use stored ESPN event ID if available
+    // ── Determine the active tournament object depending on format ──
+    let activeTournament;
+    if (g.format === 'single') {
+      // Single format stores the tournament in g.tournament, not g.activeTournament
+      if (g.tournamentEnded) { showToast('Tournament already ended.', 'error'); return; }
+      activeTournament = g.tournament;
+    } else {
+      activeTournament = g.activeTournament;
+    }
+
+    if (!activeTournament) { showToast('No active tournament found.', 'error'); return; }
+    if (!confirm(`End "${activeTournament.name}" and save final results?`)) return;
+
     showToast('Saving final results...', 'info');
+
+    // Load final scores
     const espnId = g.espnEventId;
     if (espnId) {
       try {
-        // Try fetching scores for specific tournament (works even after event ends)
         const url  = `https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard?event=${espnId}`;
         const data = await fetchWithProxy(url);
         const evt  = data?.events?.[0];
@@ -3271,7 +3102,6 @@
           await update(ref(db, `groups/${window._group.id}/tournamentScores`), window._group.scores);
           showToast('Final scores loaded from ESPN ✓', 'success');
         } else {
-          // Fall back to cached scores
           const scoreSnap = await get(ref(db, `groups/${window._group.id}/tournamentScores`));
           if (scoreSnap.exists()) window._group.scores = scoreSnap.val();
           showToast('Using cached scores (ESPN event data not available)', 'info');
@@ -3302,19 +3132,16 @@
           if (!pick) return;
           const sd  = window._group.scores[pick.id];
           const val = sd?.toPar ? parseInt(sd.toPar) : null;
-          if (val !== null) { sum += val; hasScore = true; }
+          if (val !== null && !isNaN(val)) { sum += val; hasScore = true; }
         });
         if (hasScore) total = sum;
       }
       return { uid, name: uData.name, total };
     }));
 
-    // Sort to find winner (lowest) and loser (highest)
-    const scored = results.filter(r => r.total !== null).sort((a,b) => a.total - b.total);
-    const winner = scored[0] || null;
-    const loser  = scored[scored.length - 1] || null;
-
-    // Handle ties for first and last
+    const scored  = results.filter(r => r.total !== null).sort((a,b) => a.total - b.total);
+    const winner  = scored[0] || null;
+    const loser   = scored[scored.length - 1] || null;
     const winners = scored.filter(r => r.total === winner?.total);
     const losers  = scored.filter(r => r.total === loser?.total);
 
@@ -3323,13 +3150,11 @@
       const uSnap = await get(ref(db, `users/${w.uid}`));
       const uData = uSnap.exists() ? uSnap.val() : {};
       const trophies = uData.trophies?.[gid] || [];
-      // Only award crown if there are at least 2 players, and winner != loser
       if (scored.length > 1 || winners.length > 0) {
         trophies.push('crown');
         await update(ref(db, `users/${w.uid}/trophies`), { [gid]: trophies });
       }
     }
-    // Only award poop if there are at least 2 distinct scores
     if (scored.length > 1 && loser?.total !== winner?.total) {
       for (const l of losers) {
         const uSnap = await get(ref(db, `users/${l.uid}`));
@@ -3341,42 +3166,52 @@
     }
 
     // Save tournament to history
-    const tid = g.activeTournament.id;
+    const tid = activeTournament.id;
     await set(ref(db, `groups/${gid}/history/${tid}`), {
-      name:      g.activeTournament.name,
-      date:      g.activeTournament.date || '',
+      name:        activeTournament.name,
+      date:        activeTournament.date || '',
       completedAt: Date.now(),
-      winner:    winner?.name || '—',
-      winnerId:  winner?.uid  || null,
-      loser:     loser?.name  || '—',
-      loserId:   loser?.uid   || null,
-      results:   results.map(r => ({ uid: r.uid, name: r.name, total: r.total })),
-      picks:     picksData,
-      scores:    window._group.scores,
+      winner:      winner?.name || '—',
+      winnerId:    winner?.uid  || null,
+      loser:       loser?.name  || '—',
+      loserId:     loser?.uid   || null,
+      results:     results.map(r => ({ uid: r.uid, name: r.name, total: r.total })),
+      picks:       picksData,
+      scores:      window._group.scores,
     });
 
-    // Mark active tournament as completed
-    const completedT = { ...g.activeTournament, completed: true };
-    await update(ref(db, `groups/${gid}`), {
-      activeTournament: completedT,
-      picks: null,
-    });
-    window._group.data.activeTournament = completedT;
+    // ── Format-specific: mark as ended ──
+    if (g.format === 'single') {
+      // Mark this single group as tournament-ended
+      await update(ref(db, `groups/${gid}`), {
+        tournamentEnded: true,
+        picks: null,
+      });
+      window._group.data.tournamentEnded = true;
+    } else {
+      // Season / Major Slam: mark activeTournament as completed
+      const completedT = { ...activeTournament, completed: true };
+      await update(ref(db, `groups/${gid}`), {
+        activeTournament: completedT,
+        picks: null,
+      });
+      window._group.data.activeTournament = completedT;
 
-    // For major slam: advance to next tournament
-    if (g.format === 'major_slam') {
-      const nextIdx = (g.currentTournamentIndex || 0) + 1;
-      await update(ref(db, `groups/${gid}`), { currentTournamentIndex: nextIdx });
-      window._group.data.currentTournamentIndex = nextIdx;
-    }
+      // For major slam: advance to next tournament index
+      if (g.format === 'major_slam') {
+        const nextIdx = (g.currentTournamentIndex || 0) + 1;
+        await update(ref(db, `groups/${gid}`), { currentTournamentIndex: nextIdx });
+        window._group.data.currentTournamentIndex = nextIdx;
+      }
 
-    // Update season tournament list
-    if (g.format === 'season' && g.seasonTournaments) {
-      const updated = g.seasonTournaments.map(t =>
-        t.id === tid ? { ...t, completed: true } : t
-      );
-      await update(ref(db, `groups/${gid}`), { seasonTournaments: updated });
-      window._group.data.seasonTournaments = updated;
+      // For season: mark in seasonTournaments list too
+      if (g.format === 'season' && g.seasonTournaments) {
+        const updated = g.seasonTournaments.map(t =>
+          t.id === tid ? { ...t, completed: true } : t
+        );
+        await update(ref(db, `groups/${gid}`), { seasonTournaments: updated });
+        window._group.data.seasonTournaments = updated;
+      }
     }
 
     // Save to user stats
@@ -3385,12 +3220,17 @@
       const isLoser  = losers.some(l => l.uid === r.uid) && scored.length > 1 && loser?.total !== winner?.total;
       const rank     = scored.findIndex(s => s.uid === r.uid) + 1;
       const total    = scored.length;
-      const statEntry = { gid, groupName: g.name, tournament: g.activeTournament.name, rank, total, crown: isWinner, poop: isLoser, date: Date.now() };
+      const statEntry = {
+        gid, groupName: g.name,
+        tournament: activeTournament.name,
+        rank, total, crown: isWinner, poop: isLoser, date: Date.now()
+      };
       await update(ref(db, `users/${r.uid}/stats`), { [gid + '_' + tid]: statEntry });
     }
 
     showToast(`Tournament ended! 🏆 Winner: ${winner?.name || '—'}`, 'success');
-    // Reload group data
+
+    // Reload group data from Firebase and re-render
     const fresh = await get(ref(db, `groups/${gid}`));
     if (fresh.exists()) window._group.data = fresh.val();
     renderGroupBanner();
@@ -3398,14 +3238,13 @@
     renderLeaderboard();
   };
 
-    async function renderHistory() {
+  async function renderHistory() {
     const gid  = window._group.id;
     const g    = window._group.data;
     const uid  = auth.currentUser.uid;
     const list = document.getElementById('gs-history-list');
     const isOwner = uid === g.ownerId || window._state.isSuperadmin;
 
-    // Show "Add Tournament" button for season mode owners
     const addSection = document.getElementById('gs-add-tournament-section');
     if (addSection) addSection.classList.toggle('hidden', g.format !== 'season' || !isOwner);
 
@@ -3417,7 +3256,6 @@
           : 'No tournaments added to this season yet.');
         return;
       }
-      // Fetch past results from Firebase history
       const histSnap = await get(ref(db, `groups/${gid}/history`));
       const history  = histSnap.exists() ? histSnap.val() : {};
       const now      = new Date();
@@ -3442,7 +3280,6 @@
       return;
     }
 
-    // Major Slam format — show fixed tournament list with results
     if (g.format === 'major_slam') {
       const majors = g.majorTournaments || [
         { id: 'masters',   name: 'The Masters' },
@@ -3472,10 +3309,29 @@
       return;
     }
 
+    // Single format — show history if any
+    if (g.format === 'single') {
+      const histSnap = await get(ref(db, `groups/${gid}/history`));
+      if (histSnap.exists()) {
+        const history = histSnap.val();
+        list.innerHTML = Object.entries(history).map(([tid, t]) => `
+          <div class="past-tournament-item">
+            <div class="past-t-header">
+              <div class="past-t-name">${escHtml(t.name)}</div>
+              <div class="past-t-date">${t.date ? new Date(t.date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : ''}</div>
+            </div>
+            <div class="past-t-winner">✅ 🏆 ${escHtml(t.winner || '—')}</div>
+          </div>`).join('');
+      } else {
+        list.innerHTML = emptyState('📋', 'No tournament history yet.');
+      }
+      return;
+    }
+
     list.innerHTML = emptyState('📋', 'No history available for this format.');
   }
 
-    function friendlyAuthError(code) {
+  function friendlyAuthError(code) {
     const map = {
       'auth/user-not-found':       'No account found with this email.',
       'auth/wrong-password':       'Incorrect password.',
@@ -3511,7 +3367,6 @@
      NAVIGATION
   ---------------------------------------------------------- */
   function navigateTo(page) {
-    // Hide group screen if open
     document.getElementById('page-group').classList.remove('active');
     ['home','profile','admin'].forEach(p => {
       document.getElementById(`page-${p}`).classList.add('hidden');
@@ -3563,20 +3418,17 @@
   }
   window.showToast = showToast;
 
-  // Clear all service workers and caches
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(regs => {
       regs.forEach(reg => reg.unregister());
     });
   }
-  // Clear all caches so app always loads fresh
   if ('caches' in window) {
     caches.keys().then(keys => {
       keys.forEach(key => caches.delete(key));
     });
   }
 
-  // PWA Install prompt
   let deferredPrompt;
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
