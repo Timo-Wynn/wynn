@@ -1065,12 +1065,12 @@
     /* Golf tournament leaderboard */
     .golf-lb-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--cream-dark); font-size: 13px; }
     .golf-lb-item:last-child { border-bottom: none; }
-    .golf-lb-pos { min-width: 28px; font-weight: 700; color: var(--text-light); text-align: center; font-size: 12px; }
+    .golf-lb-pos { min-width: 30px; font-weight: 700; color: var(--text-light); text-align: center; font-size: 12px; flex-shrink: 0; }
     .golf-lb-name { font-weight: 600; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .golf-lb-name.cut { color: var(--text-light); text-decoration: line-through; }
     .golf-lb-country { font-size: 11px; color: var(--text-light); }
-    .golf-lb-score { font-weight: 700; min-width: 36px; text-align: right; }
-    .golf-lb-thru { font-size: 11px; color: var(--text-light); min-width: 24px; text-align: right; }
+    .golf-lb-score { font-weight: 700; min-width: 36px; text-align: right; flex-shrink: 0; }
+    .golf-lb-thru { font-size: 11px; color: var(--text-light); min-width: 26px; text-align: right; flex-shrink: 0; }
     .golf-lb-item.my-pick { background: var(--green-subtle); border-radius: 6px; padding: 8px 8px; margin: 0 -4px; }
     .member-item { background: var(--white); border-radius: var(--radius); padding: 12px 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 8px; box-shadow: var(--shadow); }
     .member-avatar { width: 36px; height: 36px; border-radius: 9px; background: var(--green); color: var(--cream); font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -1368,9 +1368,12 @@
           <span id="gs-format-badge">🏆 —</span>
         </div>
         <div class="deadline-chip" id="gs-deadline-chip">⏰ Deadline: Wed 22:00 CET</div>
-        <div id="gs-end-tournament-section" class="hidden" style="margin-top:10px;">
+        <div id="gs-end-tournament-section" class="hidden" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
           <button onclick="endTournament()" style="background:rgba(201,168,76,0.25);border:none;color:var(--cream);padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;">
-            🏁 End Tournament & Save Results
+            🏁 End Tournament &amp; Save Results
+          </button>
+          <button id="gs-deactivate-btn" onclick="deactivateTournament()" style="background:rgba(255,255,255,0.12);border:none;color:var(--cream);padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;">
+            ↩ Deaktivieren (kein Speichern)
           </button>
         </div>
 
@@ -1988,7 +1991,7 @@
           <div class="item-sub">${escHtml(u.email)}</div>
         </div>
         <div class="item-actions">
-          ${uid !== auth.currentUser.uid ? `<button class="btn btn-danger btn-sm" onclick="deleteUser('${uid}','${escJs(u.name)}')">Delete</button>` : '<span style="font-size:12px;color:var(--text-light)">You</span>'}
+          ${uid !== auth.currentUser.uid ? `<button class="btn btn-danger btn-sm" onclick="deleteUser('${uid}','${escHtml(u.name)}')">Delete</button>` : '<span style="font-size:12px;color:var(--text-light)">You</span>'}
         </div>
       </div>
     `).join('');
@@ -2008,7 +2011,7 @@
         </div>
         <div class="item-actions">
           <button class="btn btn-secondary btn-sm" onclick="adminSetPicks('${gid}','${escHtml(g.name)}')">✏️ Picks</button>
-          <button class="btn btn-danger btn-sm" onclick="adminDeleteGroup('${gid}','${escJs(g.name)}')">Delete</button>
+          <button class="btn btn-danger btn-sm" onclick="adminDeleteGroup('${gid}','${escHtml(g.name)}')">Delete</button>
         </div>
       </div>
     `).join('');
@@ -2240,10 +2243,18 @@
     return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  // Safe for use inside single-quoted onclick JS string args — escapes \ and '
+  // Used inside onclick="" JS strings – escapes \ and '
   function escJs(str) {
     return String(str||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   }
+
+  // Called from onclick on Set Active buttons – reads from data-attributes to avoid apostrophe issues
+  window.setActiveTournamentFromEl = function(el) {
+    const id   = el.dataset.tid;
+    const name = el.dataset.tname;
+    const date = el.dataset.tdate || '';
+    setActiveTournament(id, name, date);
+  };
 
   function emptyState(icon, text) {
     return `<div class="empty-state"><div class="empty-icon">${icon}</div><p>${text}</p></div>`;
@@ -2773,7 +2784,7 @@
       const isUsed = window._group.usedPicksThisSeason.includes(p.id);
       const isMine = ['usa','europe','row'].some(r => window._group.myPicks[r]?.id === p.id && r !== region);
       const disabled = isUsed || isMine;
-      return `<div class="pick-dropdown-item${disabled?' used-pick':''}" onclick="selectPick('${region}','${p.id}','${escJs(p.name)}','${escJs(p.country)}')">
+      return `<div class="pick-dropdown-item${disabled?' used-pick':''}" onclick="selectPick('${region}','${p.id}','${escHtml(p.name)}','${escHtml(p.country)}')">
         <span class="player-name">${escHtml(p.name)}</span>
         <span class="player-country">${escHtml(p.country)}${isUsed?' · used':''}</span>
       </div>`;
@@ -2896,29 +2907,27 @@
     entries.forEach((e, i) => {
       if (i > 0 && entries[i-1].totalScore !== null && e.totalScore === entries[i-1].totalScore) {
         e.rank = entries[i-1].rank;
-      } else {
-        e.rank = rank;
-      }
+      } else { e.rank = rank; }
       rank++;
     });
 
-    // Live crown/poop based on current standings
-    const scoredEntries = entries.filter(e => e.totalScore !== null);
-    const bestScore  = scoredEntries.length ? scoredEntries[0].totalScore : null;
-    const worstScore = scoredEntries.length ? scoredEntries[scoredEntries.length - 1].totalScore : null;
-    const hasUniqueWinner = scoredEntries.length >= 2 && bestScore !== worstScore;
+    // Live crown/poop based on current standings only
+    const scoredE   = entries.filter(e => e.totalScore !== null);
+    const bestScore = scoredE.length ? scoredE[0].totalScore : null;
+    const worstScore= scoredE.length ? scoredE[scoredE.length-1].totalScore : null;
+    const hasWinner = scoredE.length >= 2 && bestScore !== worstScore;
 
     list.innerHTML = entries.map(e => {
       const showCrown = e.totalScore !== null && e.totalScore === bestScore;
-      const showPoop  = e.totalScore !== null && e.totalScore === worstScore && hasUniqueWinner;
+      const showPoop  = e.totalScore !== null && e.totalScore === worstScore && hasWinner;
       const crownBadges = showCrown ? '👑' : '';
       const poopBadges  = showPoop  ? '💩' : '';
 
       const pickDetail = (locked && e.pickRows.length) ? `
         <div class="lb-picks-detail">
           ${e.pickRows.map(p => {
-            const thruDisplay = p.isCut ? '✂️' :
-              (p.thru === 'F' || p.thru === '18' || Number(p.thru) >= 18) ? 'F' :
+            const thruStr = p.isCut ? '' :
+              (p.thru === 'F' || Number(p.thru) >= 18) ? 'F' :
               (p.thru && p.thru !== '0') ? `/${p.thru}` : '';
             return `<div class="lb-pick-row">
               <div class="lb-pick-left">
@@ -2927,7 +2936,7 @@
               </div>
               <div class="lb-pick-right">
                 <span class="pick-score-val${p.isCut?' cut':''}">${p.toPar ? formatScore(p.toPar) : '—'}</span>
-                ${thruDisplay && !p.isCut ? `<span class="pick-thru">${thruDisplay}</span>` : ''}
+                ${thruStr ? `<span class="pick-thru">${thruStr}</span>` : ''}
               </div>
             </div>`;
           }).join('')}
@@ -2986,7 +2995,7 @@
           <div class="member-name">${escHtml(m.name)} ${isOwner?'👑':''} ${isMe?'<span style="font-size:11px;color:var(--text-light)">(you)</span>':''}</div>
           <div class="member-role">${isOwner ? 'Group owner' : 'Member'}</div>
         </div>
-        ${canKick ? `<button class="btn btn-danger btn-sm" onclick="kickMember('${m.uid}','${escJs(m.name)}')">Kick</button>` : ''}
+        ${canKick ? `<button class="btn btn-danger btn-sm" onclick="kickMember('${m.uid}','${escHtml(m.name)}')">Kick</button>` : ''}
       </div>`;
     }).join('');
 
@@ -3098,15 +3107,15 @@
   };
 
   window.setActiveTournament = async (id, name, date) => {
-    const gid        = window._group.id;
-    const g          = window._group.data;
+    const gid = window._group.id;
+    const g   = window._group.data;
     if (g.activeTournament?.id && !g.activeTournament?.completed) {
-      showToast('Beende zuerst das aktive Turnier.', 'error');
+      showToast('Deaktiviere zuerst das aktive Turnier.', 'error');
       return;
     }
     const tournament = { id, name, date, completed: false };
-    // Recalculate deadline for the new tournament so picks aren't immediately locked
-    let newDeadlineTs = date
+    // Always recalculate deadline so picks aren't instantly locked
+    const newDeadlineTs = date
       ? calcDeadlineForTournament(date).getTime()
       : Date.now() + 7 * 24 * 60 * 60 * 1000;
     await update(ref(db, `groups/${gid}`), {
@@ -3117,7 +3126,54 @@
     window._group.data.activeTournament  = tournament;
     window._group.data.deadlineTimestamp = newDeadlineTs;
     window._group.deadlinePassed = false;
-    showToast(`"${name}" ist jetzt aktiv — Picks sind offen! 🎉`, 'success');
+    showToast(`"${name}" ist jetzt aktiv — Picks offen! 🎉`, 'success');
+    renderGroupBanner();
+    renderHistory();
+    renderLeaderboard();
+  };
+
+  /* ── DEACTIVATE without saving results ─────────────────── */
+  window.deactivateTournament = async () => {
+    const gid = window._group.id;
+    const g   = window._group.data;
+    const t   = g.activeTournament;
+    if (!t) { showToast('Kein aktives Turnier.', 'error'); return; }
+    if (!confirm(`"${t.name}" deaktivieren?\nKeine Ergebnisse werden gespeichert. Picks werden gelöscht.`)) return;
+    await update(ref(db, `groups/${gid}`), {
+      activeTournament: null,
+      picks: null,
+    });
+    window._group.data.activeTournament = null;
+    window._group.deadlinePassed = false;
+    showToast('Turnier deaktiviert.', 'info');
+    renderGroupBanner();
+    renderHistory();
+    renderLeaderboard();
+    switchGroupTab('history');
+  };
+
+  /* ── RESET a completed tournament (undo accidental end) ── */
+  window.resetCompletedTournament = async (tid) => {
+    const gid = window._group.id;
+    const g   = window._group.data;
+    if (!confirm('Dieses Turnier zurücksetzen? Gespeicherte Ergebnisse werden gelöscht.')) return;
+    // Remove from history
+    await remove(ref(db, `groups/${gid}/history/${tid}`));
+    // Mark as not completed in seasonTournaments
+    if (g.seasonTournaments) {
+      const updated = g.seasonTournaments.map(t => t.id === tid ? { ...t, completed: false } : t);
+      await update(ref(db, `groups/${gid}`), { seasonTournaments: updated });
+      window._group.data.seasonTournaments = updated;
+    }
+    // Clear activeTournament if it was this one
+    if (g.activeTournament?.id === tid) {
+      await update(ref(db, `groups/${gid}`), { activeTournament: null });
+      window._group.data.activeTournament = null;
+    }
+    // Reload fresh data
+    const fresh = await get(ref(db, `groups/${gid}`));
+    if (fresh.exists()) window._group.data = fresh.val();
+    showToast('Turnier zurückgesetzt ✓', 'success');
     renderGroupBanner();
     renderHistory();
     renderLeaderboard();
@@ -3291,10 +3347,8 @@
     renderGroupBanner();
     renderHistory();
     renderLeaderboard();
-    // Switch to History so admin can immediately Set Active the next tournament
-    if (window._group.data.format === 'season' || window._group.data.format === 'major_slam') {
-      switchGroupTab('history');
-    }
+    // Switch to History tab so admin can immediately Set Active the next tournament
+    if (g.format === 'season' || g.format === 'major_slam') switchGroupTab('history');
   };
 
   /* ── GOLF TOURNAMENT LEADERBOARD ───────────────────────── */
@@ -3302,52 +3356,43 @@
     const section = document.getElementById('gs-golf-leaderboard-section');
     const list    = document.getElementById('gs-golf-leaderboard-list');
     if (!section || !list) return;
-
-    // Collect all picked player IDs to highlight them
     const picksSnap = await get(ref(db, `groups/${window._group.id}/picks`));
     const picksData = picksSnap.exists() ? picksSnap.val() : {};
     const pickedIds = new Set();
     Object.values(picksData).forEach(p => {
       ['usa','europe','row'].forEach(r => { if (p[r]?.id) pickedIds.add(p[r].id); });
     });
-
     let players = window._group.players || [];
     if (forceRefresh || !players.length) {
       list.innerHTML = '<div style="font-size:12px;color:var(--text-light);padding:8px 0;">Lade ESPN-Daten...</div>';
       await loadGroupPlayers(false);
       players = window._group.players || [];
     }
-
     if (!players.length) { section.classList.add('hidden'); return; }
     section.classList.remove('hidden');
-
     const sorted = [...players].sort((a, b) => {
       const sa = parseScore(a.toPar), sb = parseScore(b.toPar);
       if (sa !== null && sb !== null) return sa - sb;
-      if (sa !== null) return -1;
-      if (sb !== null) return  1;
-      return 0;
+      if (sa !== null) return -1; if (sb !== null) return 1; return 0;
     });
-
     let pos = 1;
     const rows = sorted.map((p, i) => {
       const statusRaw = (p.status || '').toLowerCase();
       const isCut = statusRaw === 'cut' || statusRaw === 'wd' || statusRaw === 'mc' || statusRaw.includes('cut') || statusRaw.includes('withdraw');
       const isPicked = pickedIds.has(p.id);
       const scoreNum = parseScore(p.toPar);
-      if (!isCut) { if (i === 0 || parseScore(sorted[i-1].toPar) !== scoreNum) pos = i + 1; }
-      const posLabel = isCut ? 'CUT' : (i > 0 && parseScore(sorted[i-1].toPar) === scoreNum ? `T${pos}` : String(pos));
-      const thruDisplay = isCut ? '✂️' :
-        (p.thru === 'F' || Number(p.thru) >= 18) ? 'F' :
-        (p.thru && p.thru !== '0') ? `/${p.thru}` : '';
-      return `<div class="golf-lb-item${isPicked ? ' my-pick' : ''}">
+      if (!isCut) { if (i === 0 || parseScore(sorted[i-1]?.toPar) !== scoreNum) pos = i + 1; }
+      const isTied  = !isCut && i > 0 && parseScore(sorted[i-1]?.toPar) === scoreNum;
+      const posLabel = isCut ? 'CUT' : (isTied ? `T${pos}` : String(pos));
+      const thruStr  = isCut ? '✂️' : (p.thru === 'F' || Number(p.thru) >= 18) ? 'F' : (p.thru && p.thru !== '0') ? `/${p.thru}` : '';
+      return `<div class="golf-lb-item${isPicked?' my-pick':''}">
         <span class="golf-lb-pos">${posLabel}</span>
         <div style="flex:1;min-width:0;">
-          <div class="golf-lb-name${isCut ? ' cut' : ''}">${escHtml(p.name)}${isPicked ? ' 📌' : ''}</div>
-          <div class="golf-lb-country">${escHtml(p.country || '')}</div>
+          <div class="golf-lb-name${isCut?' cut':''}">${escHtml(p.name)}${isPicked?' 📌':''}</div>
+          <div class="golf-lb-country">${escHtml(p.country||'')}</div>
         </div>
         <span class="golf-lb-score">${p.toPar ? formatScore(p.toPar) : '<span style="color:var(--text-light)">—</span>'}</span>
-        <span class="golf-lb-thru">${thruDisplay}</span>
+        <span class="golf-lb-thru">${thruStr}</span>
       </div>`;
     });
     list.innerHTML = `<div style="background:var(--white);border-radius:var(--radius-lg);padding:12px 16px;box-shadow:var(--shadow);">${rows.join('')}</div>`;
@@ -3363,20 +3408,21 @@
     const addSection = document.getElementById('gs-add-tournament-section');
     if (addSection) addSection.classList.toggle('hidden', g.format !== 'season' || !isOwner);
 
+    // Renders a ranked group standings list from a history results array
     function rankRows(results) {
       const scored = (results || []).filter(r => r.total !== null).sort((a,b) => a.total - b.total);
       if (!scored.length) return '';
       return scored.map((r, i) => {
         const isFirst = i === 0;
-        const isLast  = i === scored.length - 1 && scored.length > 1 && r.total !== scored[0].total;
+        const isLast  = i === scored.length-1 && scored.length > 1 && r.total !== scored[0].total;
         const sign    = isFirst ? '👑' : (isLast ? '💩' : `${i+1}.`);
         const n = r.total;
         const scoreStr = n > 0 ? `+${n}` : n === 0 ? 'E' : String(n);
-        const color = n < 0 ? 'var(--success)' : n > 0 ? 'var(--error)' : 'var(--text-mid)';
+        const color    = n < 0 ? 'var(--success)' : n > 0 ? 'var(--error)' : 'var(--text-mid)';
         return `<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin-top:4px;">
-          <span style="min-width:22px;font-weight:700;color:var(--green);text-align:center">${sign}</span>
-          <span style="flex:1;color:var(--text-dark)">${escHtml(r.name)}</span>
-          <span style="font-weight:700;color:${color}">${scoreStr}</span>
+          <span style="min-width:22px;font-weight:700;color:var(--green);text-align:center;">${sign}</span>
+          <span style="flex:1;color:var(--text-dark);">${escHtml(r.name)}</span>
+          <span style="font-weight:700;color:${color};">${scoreStr}</span>
         </div>`;
       }).join('');
     }
@@ -3384,24 +3430,22 @@
     if (g.format === 'season') {
       const tournaments = g.seasonTournaments || [];
       if (!tournaments.length) {
-        list.innerHTML = emptyState('📅', isOwner
-          ? 'Noch keine Turniere hinzugefügt. Nutze den Button oben!'
-          : 'Noch keine Turniere in dieser Season.');
+        list.innerHTML = emptyState('📅', isOwner ? 'Noch keine Turniere hinzugefügt. Nutze den Button oben!' : 'Noch keine Turniere in dieser Season.');
         return;
       }
       const histSnap = await get(ref(db, `groups/${gid}/history`));
       const history  = histSnap.exists() ? histSnap.val() : {};
       const now      = new Date();
-      const activeId = g.activeTournament?.id;
+      const activeId        = g.activeTournament?.id;
       const activeCompleted = g.activeTournament?.completed;
 
       list.innerHTML = tournaments.map(t => {
         const isPast   = t.date && new Date(t.date) < now;
         const result   = history[t.id];
-        const dateStr  = t.date ? new Date(t.date).toLocaleDateString('de-DE', { day:'numeric', month:'short', year:'numeric' }) : '';
+        const dateStr  = t.date ? new Date(t.date).toLocaleDateString('de-DE', {day:'numeric',month:'short',year:'numeric'}) : '';
         const isActive = t.id === activeId && !activeCompleted;
 
-        let statusHtml = '';
+        let statusHtml;
         if (isActive) {
           statusHtml = '<span style="color:var(--success);font-weight:600;font-size:13px;">🟢 Aktiv — Picks offen</span>';
         } else if (t.completed && result?.results) {
@@ -3414,17 +3458,27 @@
           statusHtml = '<span style="color:var(--text-light);font-size:12px;">📅 Anstehend</span>';
         }
 
+        // Set Active button — uses data-attributes to avoid apostrophe/quote issues
         const setActiveBtn = (isOwner && !isActive && !t.completed)
-          ? `<div style="margin-top:10px;"><button class="btn btn-sm btn-secondary" style="font-size:11px;padding:5px 12px;" onclick="setActiveTournament('${t.id}','${escJs(t.name)}','${t.date||''}')">▶ Set Active</button></div>`
+          ? `<div style="margin-top:8px;">
+               <button class="btn btn-sm btn-secondary" style="font-size:11px;padding:5px 12px;"
+                 data-tid="${escHtml(t.id)}" data-tname="${escHtml(t.name)}" data-tdate="${t.date||''}"
+                 onclick="setActiveTournamentFromEl(this)">▶ Set Active</button>
+             </div>`
           : '';
 
-        return `<div class="past-tournament-item" style="${isActive ? 'border:2px solid var(--green);' : ''}">
+        // Reset button for owner on completed tournaments
+        const resetBtn = (isOwner && t.completed)
+          ? `<button onclick="resetCompletedTournament('${escHtml(t.id)}')" style="background:none;border:none;font-size:11px;color:var(--text-light);cursor:pointer;padding:2px 0;margin-top:4px;text-decoration:underline;">↩ Zurücksetzen</button>`
+          : '';
+
+        return `<div class="past-tournament-item" style="${isActive?'border:2px solid var(--green);':''}">
           <div class="past-t-header">
-            <div class="past-t-name">${escHtml(t.name)}${isActive ? ' 🟢' : ''}</div>
+            <div class="past-t-name">${escHtml(t.name)}${isActive?' 🟢':''}</div>
             <div class="past-t-date">${dateStr}</div>
           </div>
           <div style="margin-top:4px;">${statusHtml}</div>
-          ${setActiveBtn}
+          ${setActiveBtn}${resetBtn}
         </div>`;
       }).join('');
       return;
@@ -3432,11 +3486,11 @@
 
     if (g.format === 'major_slam') {
       const majors = g.majorTournaments || [
-        { id: 'masters',   name: 'The Masters' },
-        { id: 'pga-champ', name: 'PGA Championship' },
-        { id: 'us-open',   name: 'U.S. Open' },
-        { id: 'the-open',  name: 'The Open Championship' },
-        { id: 'fedex',     name: 'FedEx Cup Playoffs' },
+        { id:'masters',   name:'The Masters' },
+        { id:'pga-champ', name:'PGA Championship' },
+        { id:'us-open',   name:'U.S. Open' },
+        { id:'the-open',  name:'The Open Championship' },
+        { id:'fedex',     name:'FedEx Cup Playoffs' },
       ];
       const histSnap = await get(ref(db, `groups/${gid}/history`));
       const history  = histSnap.exists() ? histSnap.val() : {};
@@ -3445,13 +3499,13 @@
         const result   = history[t.id];
         const isActive = i === currentIdx;
         const isPast   = i < currentIdx;
-        let bodyHtml   = '';
+        let bodyHtml = '';
         if (isPast && result?.results) bodyHtml = rankRows(result.results);
         else if (isPast) bodyHtml = '<span style="color:var(--text-light);font-size:12px;">⏳ Ergebnisse ausstehend</span>';
-        return `<div class="past-tournament-item" style="${isActive ? 'border:2px solid var(--green);' : ''}">
+        return `<div class="past-tournament-item" style="${isActive?'border:2px solid var(--green);':''}">
           <div class="past-t-header">
             <div class="past-t-name">${i+1}. ${escHtml(t.name)}</div>
-            <div class="past-t-date">${isActive ? '🟢 Aktiv' : isPast ? '✅ Fertig' : '📅 Anstehend'}</div>
+            <div class="past-t-date">${isActive?'🟢 Aktiv':isPast?'✅ Fertig':'📅 Anstehend'}</div>
           </div>
           ${bodyHtml ? `<div style="margin-top:4px;">${bodyHtml}</div>` : ''}
         </div>`;
