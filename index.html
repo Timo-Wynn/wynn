@@ -1418,10 +1418,11 @@
         <!-- Player field loader -->
         <div id="gs-field-loader" style="margin-bottom:14px;">
           <div id="gs-field-status" style="font-size:13px;color:var(--text-light);margin-bottom:8px;display:flex;align-items:center;gap:8px;">
-            <span id="gs-field-count">No player field loaded yet</span>
+            <span id="gs-field-count">Noch kein Starterfeld geladen</span>
           </div>
+          <div id="gs-field-disclaimer" class="hidden" style="font-size:12px;line-height:1.5;padding:8px 12px;border-radius:8px;margin-bottom:8px;background:var(--cream-dark);"></div>
           <button class="btn btn-secondary btn-full btn-sm" id="gs-load-field-btn" onclick="loadPlayerFieldManual()">
-            ↻ Load Player Field from ESPN
+            ↻ Starterfeld von ESPN laden
           </button>
         </div>
 
@@ -2240,13 +2241,9 @@
   function escHtml(str) {
     return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
-
-  // Safe inside onclick="" JS strings — escapes \ and '
   function escJs(str) {
     return String(str||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   }
-
-  // Reads tournament data from data-attributes to avoid apostrophe/quote breakage
   window.setActiveTournamentFromEl = function(el) {
     setActiveTournament(el.dataset.tid, el.dataset.tname, el.dataset.tdate || '');
   };
@@ -2590,17 +2587,48 @@
   }
 
   function updateFieldStatus() {
-    const count = window._group.players?.length || 0;
-    const el    = document.getElementById('gs-field-count');
-    const btn   = document.getElementById('gs-load-field-btn');
+    const count      = window._group.players?.length || 0;
+    const el         = document.getElementById('gs-field-count');
+    const btn        = document.getElementById('gs-load-field-btn');
+    const disclaimer = document.getElementById('gs-field-disclaimer');
     if (!el) return;
+
     if (count > 0) {
-      el.textContent = `✅ ${count} players loaded`;
-      el.style.color = 'var(--success)';
-      if (btn) btn.textContent = '↻ Refresh Player Field';
+      const espnName    = window._group.espnTournamentName || '';
+      const activeName  = window._group.data?.activeTournament?.name || window._group.data?.tournament?.name || '';
+
+      // Normalize for comparison: lowercase, strip punctuation
+      const norm = s => s.toLowerCase().replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ').trim();
+      const espnWords   = norm(espnName).split(' ').filter(w => w.length > 3);
+      const activeWords = norm(activeName).split(' ').filter(w => w.length > 3);
+      const overlap     = espnWords.filter(w => activeWords.includes(w));
+      const isMatch     = espnName && activeName && overlap.length >= 1;
+      const hasActive   = !!activeName;
+
+      el.textContent = `${count} Spieler geladen`;
+      el.style.color = 'var(--text-dark)';
+      if (btn) btn.textContent = '↻ Starterfeld aktualisieren';
+
+      if (disclaimer) {
+        if (!hasActive) {
+          disclaimer.innerHTML = `<span style="color:var(--text-light);">ℹ️ Kein aktives Turnier gesetzt.</span>`;
+          disclaimer.classList.remove('hidden');
+        } else if (!espnName) {
+          disclaimer.innerHTML = `<span style="color:var(--gold);">⚠️ Quelltournier unbekannt — bitte Feld neu laden.</span>`;
+          disclaimer.classList.remove('hidden');
+        } else if (isMatch) {
+          disclaimer.innerHTML = `<span style="color:var(--success);">✅ Feld passt: <strong>${espnName}</strong></span>`;
+          disclaimer.classList.remove('hidden');
+        } else {
+          disclaimer.innerHTML = `<span style="color:#C0392B;">⚠️ Feld stammt von: <strong>${espnName}</strong><br>Aktives Turnier: <strong>${activeName}</strong><br>ESPN hat das aktuelle Feld noch nicht — bitte Dienstag/Mittwoch nochmal aktualisieren.</span>`;
+          disclaimer.classList.remove('hidden');
+        }
+      }
     } else {
-      el.textContent = 'No player field loaded yet';
+      el.textContent = 'Noch kein Starterfeld geladen';
       el.style.color = 'var(--text-light)';
+      if (btn) btn.textContent = '↻ Starterfeld von ESPN laden';
+      if (disclaimer) disclaimer.classList.add('hidden');
     }
   }
 
@@ -2632,6 +2660,8 @@
           const dateStr = evt.date ? new Date(evt.date).toLocaleDateString('en-GB',{month:'short',day:'numeric'}) : '—';
           document.getElementById('gs-tournament-date').textContent     = '📅 ' + dateStr;
           document.getElementById('gs-tournament-location').textContent = '📍 ' + (evt.competitions?.[0]?.venue?.fullName || '—');
+          // Store ESPN tournament name for mismatch detection
+          window._group.espnTournamentName = evt.name || evt.shortName || '';
           window._group.players = parseESPNPlayers(evt);
           window._group.scores  = {};
           window._group.players.forEach(p => { window._group.scores[p.id] = { toPar: p.toPar, status: p.status, thru: p.thru }; });
@@ -2906,7 +2936,6 @@
       rank++;
     });
 
-    // Live crown/poop from current standings
     const scoredE    = entries.filter(e => e.totalScore !== null);
     const bestScore  = scoredE.length ? scoredE[0].totalScore : null;
     const worstScore = scoredE.length ? scoredE[scoredE.length-1].totalScore : null;
@@ -3113,9 +3142,7 @@
       ? calcDeadlineForTournament(date).getTime()
       : Date.now() + 7 * 24 * 60 * 60 * 1000;
     await update(ref(db, `groups/${gid}`), {
-      activeTournament:  tournament,
-      picks:             null,
-      deadlineTimestamp: newDeadlineTs,
+      activeTournament: tournament, picks: null, deadlineTimestamp: newDeadlineTs,
     });
     window._group.data.activeTournament  = tournament;
     window._group.data.deadlineTimestamp = newDeadlineTs;
@@ -3124,46 +3151,39 @@
     renderGroupBanner();
     renderHistory();
     renderLeaderboard();
+    updateFieldStatus();
   };
 
-  /* ── DEACTIVATE: remove active tournament without saving ── */
   window.deactivateTournament = async () => {
     const gid = window._group.id;
     const g   = window._group.data;
     const t   = g.activeTournament;
     if (!t) { showToast('Kein aktives Turnier.', 'error'); return; }
-    if (!confirm(`"${t.name}" deaktivieren?\nKeine Ergebnisse werden gespeichert. Alle Picks werden gelöscht.`)) return;
+    if (!confirm(`"${t.name}" deaktivieren?\nKeine Ergebnisse werden gespeichert. Picks werden gelöscht.`)) return;
     await update(ref(db, `groups/${gid}`), { activeTournament: null, picks: null });
     window._group.data.activeTournament = null;
     window._group.deadlinePassed = false;
-    showToast('Turnier deaktiviert — keine Ergebnisse gespeichert.', 'info');
+    showToast('Turnier deaktiviert.', 'info');
     renderGroupBanner();
     renderHistory();
     renderLeaderboard();
     switchGroupTab('history');
   };
 
-  /* ── RESET a completed tournament (undo accidental end) ── */
   window.resetCompletedTournament = async (tid) => {
     const gid = window._group.id;
     const g   = window._group.data;
-    if (!confirm('Turnier zurücksetzen?\nGespeicherte Ergebnisse & Trophäen werden gelöscht. Das Turnier wird wieder als "anstehend" markiert.')) return;
-    // 1. Remove from history
+    if (!confirm('Turnier zurücksetzen?\nGespeicherte Ergebnisse werden gelöscht. Das Turnier wird wieder als "anstehend" markiert.')) return;
     await remove(ref(db, `groups/${gid}/history/${tid}`));
-    // 2. Mark as not completed in seasonTournaments
     if (g.seasonTournaments) {
-      const updated = g.seasonTournaments.map(t =>
-        t.id === tid ? { ...t, completed: false } : t
-      );
+      const updated = g.seasonTournaments.map(t => t.id === tid ? { ...t, completed: false } : t);
       await update(ref(db, `groups/${gid}`), { seasonTournaments: updated });
       window._group.data.seasonTournaments = updated;
     }
-    // 3. Clear activeTournament if it's this one (completed)
     if (g.activeTournament?.id === tid) {
       await update(ref(db, `groups/${gid}`), { activeTournament: null });
       window._group.data.activeTournament = null;
     }
-    // 4. Reload fresh data
     const fresh = await get(ref(db, `groups/${gid}`));
     if (fresh.exists()) window._group.data = fresh.val();
     showToast('Turnier zurückgesetzt ✓', 'success');
@@ -3333,8 +3353,6 @@
     }
 
     showToast(`Turnier beendet! 🏆 Sieger: ${winner?.name || '—'}`, 'success');
-
-    // Reload group data from Firebase and re-render
     const fresh = await get(ref(db, `groups/${gid}`));
     if (fresh.exists()) window._group.data = fresh.val();
     renderGroupBanner();
@@ -3343,25 +3361,148 @@
     if (g.format === 'season' || g.format === 'major_slam') switchGroupTab('history');
   };
 
+  async function renderHistory() {
+    const gid  = window._group.id;
+    const g    = window._group.data;
+    const uid  = auth.currentUser.uid;
+    const list = document.getElementById('gs-history-list');
+    const isOwner = uid === g.ownerId || window._state.isSuperadmin;
+
+    const addSection = document.getElementById('gs-add-tournament-section');
+    if (addSection) addSection.classList.toggle('hidden', g.format !== 'season' || !isOwner);
+
+    if (g.format === 'season') {
+      const tournaments = g.seasonTournaments || [];
+      if (!tournaments.length) {
+        list.innerHTML = emptyState('📅', isOwner
+          ? 'No tournaments added yet. Use the button above to add one!'
+          : 'No tournaments added to this season yet.');
+        return;
+      }
+      const histSnap = await get(ref(db, `groups/${gid}/history`));
+      const history  = histSnap.exists() ? histSnap.val() : {};
+      const now      = new Date();
+      const activeId = g.activeTournament?.id;
+      list.innerHTML = tournaments.map(t => {
+        const isPast     = t.date && new Date(t.date) < now;
+        const result     = history[t.id];
+        const winnerName = result?.winner || '—';
+        const dateStr    = t.date ? new Date(t.date).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '';
+        const isActive   = t.id === activeId;
+        return `<div class="past-tournament-item" style="${isActive ? 'border:2px solid var(--green);' : ''}">
+          <div class="past-t-header">
+            <div class="past-t-name">${escHtml(t.name)} ${isActive ? '🟢' : ''}</div>
+            <div class="past-t-date">${dateStr}</div>
+          </div>
+          <div class="past-t-winner" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <span>${isActive ? '🟢 Active — picks open' : t.completed ? '✅ ' + (result ? '🏆 ' + escHtml(winnerName) : 'Completed') : isPast ? '⏳ Results pending' : '📅 Upcoming'}</span>
+            ${isOwner && !isActive && !t.completed ? `<button class="btn btn-sm btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="setActiveTournament('${t.id}','${escHtml(t.name)}','${t.date||''}')">Set Active</button>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+      return;
+    }
+
+    if (g.format === 'major_slam') {
+      const majors = g.majorTournaments || [
+        { id: 'masters',   name: 'The Masters' },
+        { id: 'pga-champ', name: 'PGA Championship' },
+        { id: 'us-open',   name: 'U.S. Open' },
+        { id: 'the-open',  name: 'The Open Championship' },
+        { id: 'fedex',     name: 'FedEx Cup Playoffs' },
+      ];
+      const histSnap = await get(ref(db, `groups/${gid}/history`));
+      const history  = histSnap.exists() ? histSnap.val() : {};
+      const currentIdx = g.currentTournamentIndex || 0;
+      list.innerHTML = majors.map((t, i) => {
+        const result     = history[t.id];
+        const isActive   = i === currentIdx;
+        const isPast     = i < currentIdx;
+        const winnerName = result?.winner || '—';
+        return `<div class="past-tournament-item" style="${isActive ? 'border:2px solid var(--green);' : ''}">
+          <div class="past-t-header">
+            <div class="past-t-name">${i+1}. ${escHtml(t.name)}</div>
+            <div class="past-t-date">${isActive ? '🟢 Active' : isPast ? '✅ Done' : '📅 Upcoming'}</div>
+          </div>
+          <div class="past-t-winner">
+            ${isPast && result ? '🏆 ' + escHtml(winnerName) : isPast ? '⏳ Results pending' : ''}
+          </div>
+        </div>`;
+      }).join('');
+      return;
+    }
+
+    // Single format — show history if any
+    if (g.format === 'single') {
+      const histSnap = await get(ref(db, `groups/${gid}/history`));
+      if (histSnap.exists()) {
+        const history = histSnap.val();
+        list.innerHTML = Object.entries(history).map(([tid, t]) => `
+          <div class="past-tournament-item">
+            <div class="past-t-header">
+              <div class="past-t-name">${escHtml(t.name)}</div>
+              <div class="past-t-date">${t.date ? new Date(t.date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : ''}</div>
+            </div>
+            <div class="past-t-winner">✅ 🏆 ${escHtml(t.winner || '—')}</div>
+          </div>`).join('');
+      } else {
+        list.innerHTML = emptyState('📋', 'No tournament history yet.');
+      }
+      return;
+    }
+
+    list.innerHTML = emptyState('📋', 'No history available for this format.');
+  }
+
   /* ── GOLF TOURNAMENT LEADERBOARD ───────────────────────── */
   window.renderGolfLeaderboard = async function(forceRefresh = false) {
     const section = document.getElementById('gs-golf-leaderboard-section');
     const list    = document.getElementById('gs-golf-leaderboard-list');
     if (!section || !list) return;
+
+    let players = window._group.players || [];
+    if (forceRefresh || !players.length) {
+      await loadGroupPlayers(false);
+      players = window._group.players || [];
+    }
+
+    if (!players.length) { section.classList.add('hidden'); return; }
+
+    // Only show if ESPN data matches the active tournament
+    const espnName   = window._group.espnTournamentName || '';
+    const activeName = window._group.data?.activeTournament?.name || window._group.data?.tournament?.name || '';
+    if (activeName && espnName) {
+      const norm = s => s.toLowerCase().replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ').trim();
+      const espnWords   = norm(espnName).split(' ').filter(w => w.length > 3);
+      const activeWords = norm(activeName).split(' ').filter(w => w.length > 3);
+      const overlap     = espnWords.filter(w => activeWords.includes(w));
+      if (overlap.length === 0) {
+        // Wrong tournament — hide silently
+        section.classList.add('hidden');
+        return;
+      }
+    } else if (!activeName) {
+      // No active tournament set — don't show
+      section.classList.add('hidden');
+      return;
+    }
+
+    // Also hide if no scores yet (tournament hasn't started — all toPar are null)
+    const hasAnyScore = players.some(p => p.toPar !== null && p.toPar !== undefined);
+    if (!hasAnyScore) {
+      section.classList.add('hidden');
+      return;
+    }
+
+    section.classList.remove('hidden');
+
     const picksSnap = await get(ref(db, `groups/${window._group.id}/picks`));
     const picksData = picksSnap.exists() ? picksSnap.val() : {};
     const pickedIds = new Set();
     Object.values(picksData).forEach(p => {
       ['usa','europe','row'].forEach(r => { if (p[r]?.id) pickedIds.add(p[r].id); });
     });
-    let players = window._group.players || [];
-    if (forceRefresh || !players.length) {
-      list.innerHTML = '<div style="font-size:12px;color:var(--text-light);padding:8px 0;">Lade ESPN-Daten...</div>';
-      await loadGroupPlayers(false);
-      players = window._group.players || [];
-    }
-    if (!players.length) { section.classList.add('hidden'); return; }
-    section.classList.remove('hidden');
+
     const sorted = [...players].sort((a, b) => {
       const sa = parseScore(a.toPar), sb = parseScore(b.toPar);
       if (sa !== null && sb !== null) return sa - sb;
@@ -3374,7 +3515,7 @@
       const isPicked = pickedIds.has(p.id);
       const sn = parseScore(p.toPar);
       if (!isCut && (i === 0 || parseScore(sorted[i-1]?.toPar) !== sn)) pos = i + 1;
-      const isTied  = !isCut && i > 0 && parseScore(sorted[i-1]?.toPar) === sn;
+      const isTied   = !isCut && i > 0 && parseScore(sorted[i-1]?.toPar) === sn;
       const posLabel = isCut ? 'CUT' : (isTied ? `T${pos}` : String(pos));
       const thruStr  = isCut ? '✂️' : (p.thru === 'F' || Number(p.thru) >= 18) ? 'F' : (p.thru && p.thru !== '0') ? `/${p.thru}` : '';
       return `<div class="golf-lb-item${isPicked?' my-pick':''}">
@@ -3396,7 +3537,6 @@
     const uid  = auth.currentUser.uid;
     const list = document.getElementById('gs-history-list');
     const isOwner = uid === g.ownerId || window._state.isSuperadmin;
-
     const addSection = document.getElementById('gs-add-tournament-section');
     if (addSection) addSection.classList.toggle('hidden', g.format !== 'season' || !isOwner);
 
@@ -3429,13 +3569,11 @@
       const now      = new Date();
       const activeId        = g.activeTournament?.id;
       const activeCompleted = g.activeTournament?.completed;
-
       list.innerHTML = tournaments.map(t => {
         const isPast   = t.date && new Date(t.date) < now;
         const result   = history[t.id];
         const dateStr  = t.date ? new Date(t.date).toLocaleDateString('de-DE', {day:'numeric',month:'short',year:'numeric'}) : '';
         const isActive = t.id === activeId && !activeCompleted;
-
         let statusHtml;
         if (isActive) {
           statusHtml = '<span style="color:var(--success);font-weight:600;font-size:13px;">🟢 Aktiv — Picks offen</span>';
@@ -3448,22 +3586,13 @@
         } else {
           statusHtml = '<span style="color:var(--text-light);font-size:12px;">📅 Anstehend</span>';
         }
-
-        // Uses data-attributes — safe against apostrophes/quotes in tournament names
         const setActiveBtn = (isOwner && !isActive && !t.completed)
-          ? `<div style="margin-top:8px;">
-               <button class="btn btn-sm btn-secondary" style="font-size:11px;padding:5px 12px;"
-                 data-tid="${escHtml(t.id)}" data-tname="${escHtml(t.name)}" data-tdate="${escHtml(t.date||'')}"
-                 onclick="setActiveTournamentFromEl(this)">▶ Set Active</button>
-             </div>`
-          : '';
-
+          ? `<div style="margin-top:8px;"><button class="btn btn-sm btn-secondary" style="font-size:11px;padding:5px 12px;"
+               data-tid="${escHtml(t.id)}" data-tname="${escHtml(t.name)}" data-tdate="${escHtml(t.date||'')}"
+               onclick="setActiveTournamentFromEl(this)">▶ Set Active</button></div>` : '';
         const resetBtn = (isOwner && t.completed)
           ? `<button data-tid="${escHtml(t.id)}" onclick="resetCompletedTournament(this.dataset.tid)"
-               style="background:none;border:none;font-size:11px;color:var(--text-light);cursor:pointer;padding:2px 0;margin-top:6px;text-decoration:underline;display:block;">
-               ↩ Zurücksetzen</button>`
-          : '';
-
+               style="background:none;border:none;font-size:11px;color:var(--text-light);cursor:pointer;padding:2px 0;margin-top:6px;text-decoration:underline;display:block;">↩ Zurücksetzen</button>` : '';
         return `<div class="past-tournament-item" style="${isActive?'border:2px solid var(--green);':''}">
           <div class="past-t-header">
             <div class="past-t-name">${escHtml(t.name)}${isActive?' 🟢':''}</div>
@@ -3478,11 +3607,9 @@
 
     if (g.format === 'major_slam') {
       const majors = g.majorTournaments || [
-        { id:'masters',   name:'The Masters' },
-        { id:'pga-champ', name:'PGA Championship' },
-        { id:'us-open',   name:'U.S. Open' },
-        { id:'the-open',  name:'The Open Championship' },
-        { id:'fedex',     name:'FedEx Cup Playoffs' },
+        {id:'masters',name:'The Masters'},{id:'pga-champ',name:'PGA Championship'},
+        {id:'us-open',name:'U.S. Open'},{id:'the-open',name:'The Open Championship'},
+        {id:'fedex',name:'FedEx Cup Playoffs'},
       ];
       const histSnap = await get(ref(db, `groups/${gid}/history`));
       const history  = histSnap.exists() ? histSnap.val() : {};
@@ -3491,21 +3618,16 @@
         const result   = history[t.id];
         const isActive = i === currentIdx;
         const isPast   = i < currentIdx;
-        let bodyHtml = '';
-        if (isPast && result?.results) bodyHtml = rankRows(result.results);
-        else if (isPast) bodyHtml = '<span style="color:var(--text-light);font-size:12px;">⏳ Ergebnisse ausstehend</span>';
+        let bodyHtml = isPast && result?.results ? rankRows(result.results) : isPast ? '<span style="color:var(--text-light);font-size:12px;">⏳ Ausstehend</span>' : '';
         const resetBtn = (isOwner && isPast && result)
           ? `<button data-tid="${escHtml(t.id)}" onclick="resetCompletedTournament(this.dataset.tid)"
-               style="background:none;border:none;font-size:11px;color:var(--text-light);cursor:pointer;padding:2px 0;margin-top:6px;text-decoration:underline;display:block;">
-               ↩ Zurücksetzen</button>`
-          : '';
+               style="background:none;border:none;font-size:11px;color:var(--text-light);cursor:pointer;padding:2px 0;margin-top:6px;text-decoration:underline;display:block;">↩ Zurücksetzen</button>` : '';
         return `<div class="past-tournament-item" style="${isActive?'border:2px solid var(--green);':''}">
           <div class="past-t-header">
             <div class="past-t-name">${i+1}. ${escHtml(t.name)}</div>
             <div class="past-t-date">${isActive?'🟢 Aktiv':isPast?'✅ Fertig':'📅 Anstehend'}</div>
           </div>
-          ${bodyHtml ? `<div style="margin-top:4px;">${bodyHtml}</div>` : ''}
-          ${resetBtn}
+          ${bodyHtml?`<div style="margin-top:4px;">${bodyHtml}</div>`:''}${resetBtn}
         </div>`;
       }).join('');
       return;
@@ -3519,7 +3641,7 @@
           <div class="past-tournament-item">
             <div class="past-t-header">
               <div class="past-t-name">${escHtml(t.name)}</div>
-              <div class="past-t-date">${t.date ? new Date(t.date).toLocaleDateString('de-DE',{day:'numeric',month:'short',year:'numeric'}) : ''}</div>
+              <div class="past-t-date">${t.date?new Date(t.date).toLocaleDateString('de-DE',{day:'numeric',month:'short',year:'numeric'}):''}</div>
             </div>
             <div style="margin-top:4px;">${rankRows(t.results)}</div>
           </div>`).join('');
@@ -3528,7 +3650,6 @@
       }
       return;
     }
-
     list.innerHTML = emptyState('📋', 'Keine History verfügbar.');
   }
 
