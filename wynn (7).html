@@ -1,0 +1,3784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Kill any service worker IMMEDIATELY before anything else loads -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+    }
+    if ('caches' in window) {
+      caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+    }
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>WYNN</title>
+  <meta name="version" content="1774358397" />
+  <!--
+  ===== FIREBASE SECURITY RULES (paste into Firebase Console > Realtime Database > Rules) =====
+  {
+    "rules": {
+      "users": {
+        "$uid": {
+          ".read": "auth != null",
+          ".write": "$uid === auth.uid || root.child('users').child(auth.uid).child('isSuperadmin').val() === true"
+        }
+      },
+      "groups": {
+        ".read": "auth != null",
+        "$gid": {
+          ".write": "auth != null",
+          "picks": {
+            "$uid": {
+              ".write": "$uid === auth.uid"
+            }
+          }
+        }
+      }
+    }
+  }
+  ===== END SECURITY RULES =====
+  -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ============================================================
+       CSS VARIABLES & RESET
+    ============================================================ */
+    :root {
+      --cream:        #F5F0E8;
+      --cream-dark:   #EDE7D9;
+      --cream-deeper: #DDD5C4;
+      --green:        #1B4332;
+      --green-mid:    #2D6A4F;
+      --green-light:  #40916C;
+      --green-subtle: #D8E8E0;
+      --gold:         #C9A84C;
+      --text-dark:    #1A1A1A;
+      --text-mid:     #4A4A4A;
+      --text-light:   #888888;
+      --white:        #FFFFFF;
+      --error:        #C0392B;
+      --success:      #27AE60;
+      --radius:       12px;
+      --radius-lg:    20px;
+      --shadow:       0 4px 24px rgba(27,67,50,0.10);
+      --shadow-lg:    0 8px 40px rgba(27,67,50,0.16);
+      --transition:   all 0.22s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--cream);
+      color: var(--text-dark);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ============================================================
+       TYPOGRAPHY
+    ============================================================ */
+    h1, h2, h3 { font-family: 'Playfair Display', serif; }
+
+    /* ============================================================
+       UTILITIES
+    ============================================================ */
+    .hidden   { display: none !important; }
+    .flex     { display: flex; }
+    .col      { flex-direction: column; }
+    .center   { align-items: center; justify-content: center; }
+    .gap-sm   { gap: 8px; }
+    .gap-md   { gap: 16px; }
+    .gap-lg   { gap: 24px; }
+    .w-full   { width: 100%; }
+    .text-center { text-align: center; }
+
+    /* ============================================================
+       BUTTONS
+    ============================================================ */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: var(--transition);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-primary {
+      background: var(--green);
+      color: var(--cream);
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--green-mid);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--green);
+      border: 2px solid var(--green);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--green-subtle);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-mid);
+      padding: 10px 16px;
+    }
+    .btn-ghost:hover { color: var(--green); }
+
+    .btn-danger {
+      background: var(--error);
+      color: var(--white);
+    }
+    .btn-danger:hover:not(:disabled) { opacity: 0.85; }
+
+    .btn-sm { padding: 8px 16px; font-size: 13px; }
+    .btn-lg { padding: 16px 36px; font-size: 16px; }
+    .btn-full { width: 100%; }
+
+    /* ============================================================
+       FORM ELEMENTS
+    ============================================================ */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-mid);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 13px 16px;
+      border-radius: var(--radius);
+      border: 2px solid var(--cream-deeper);
+      background: #FFFFFF;
+      color: #1A1A1A;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 400;
+      transition: var(--transition);
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(27,67,50,0.10);
+    }
+
+    .form-group input::placeholder { color: #AAAAAA; }
+
+    /* ============================================================
+       CARDS
+    ============================================================ */
+    .card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-sm { padding: 16px; border-radius: var(--radius); }
+
+    /* ============================================================
+       TOAST NOTIFICATIONS
+    ============================================================ */
+    #toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      padding: 12px 20px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--white);
+      box-shadow: var(--shadow-lg);
+      animation: toastIn 0.3s ease forwards;
+      max-width: 320px;
+    }
+    .toast.success { background: var(--success); }
+    .toast.error   { background: var(--error); }
+    .toast.info    { background: var(--green); }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(40px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ============================================================
+       LOADING SPINNER
+    ============================================================ */
+    #loading-screen {
+      position: fixed;
+      inset: 0;
+      background: var(--cream);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--cream-deeper);
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ============================================================
+       AUTH SCREEN
+    ============================================================ */
+    #auth-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: var(--cream);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Decorative background */
+    #auth-screen::before {
+      content: '';
+      position: absolute;
+      top: -120px;
+      right: -120px;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(27,67,50,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    #auth-screen::after {
+      content: '';
+      position: absolute;
+      bottom: -80px;
+      left: -80px;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(201,168,76,0.10) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .auth-container {
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .auth-logo {
+      text-align: center;
+    }
+
+    .auth-logo .logo-mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px;
+      height: 72px;
+      background: var(--green);
+      border-radius: 20px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .auth-logo .logo-mark span {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--cream);
+      letter-spacing: -1px;
+    }
+
+    .auth-logo h1 {
+      font-size: 32px;
+      font-weight: 900;
+      color: var(--green);
+      letter-spacing: -0.5px;
+    }
+
+    .auth-logo p {
+      font-size: 14px;
+      color: var(--text-light);
+      margin-top: 4px;
+    }
+
+    .auth-card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .auth-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--cream-dark);
+      border-radius: var(--radius);
+      padding: 4px;
+      margin-bottom: 28px;
+    }
+
+    .auth-tab {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-light);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .auth-tab.active {
+      background: var(--white);
+      color: var(--green);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .auth-form .btn { margin-top: 8px; }
+
+    .auth-divider {
+      text-align: center;
+      margin-top: 16px;
+    }
+
+    .auth-divider a {
+      color: var(--green);
+      font-size: 13px;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .auth-divider a:hover { text-decoration: underline; }
+
+    /* ============================================================
+       MAIN APP LAYOUT
+    ============================================================ */
+    #app-screen { display: none; min-height: 100vh; flex-direction: column; }
+    #app-screen.active { display: flex; }
+
+    /* Top Navigation Bar */
+    .top-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--green);
+      padding: 0 20px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 12px rgba(27,67,50,0.20);
+    }
+
+    .nav-logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--cream);
+      letter-spacing: -0.5px;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      border: none;
+      background: rgba(255,255,255,0.12);
+      color: var(--cream);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+      font-size: 18px;
+    }
+    .nav-icon-btn:hover { background: rgba(255,255,255,0.22); }
+
+    .nav-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: var(--gold);
+      color: var(--white);
+      font-family: 'Playfair Display', serif;
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border: none;
+      transition: var(--transition);
+    }
+    .nav-avatar:hover { transform: scale(1.05); }
+
+    /* Superadmin badge */
+    .superadmin-badge {
+      background: var(--gold);
+      color: var(--white);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* Page content */
+    .page-content {
+      flex: 1;
+      padding: 24px 20px;
+      max-width: 640px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* Bottom Navigation */
+    .bottom-nav {
+      position: sticky;
+      bottom: 0;
+      background: var(--white);
+      border-top: 1px solid var(--cream-deeper);
+      display: flex;
+      padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+    }
+
+    .bottom-nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 0;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      transition: var(--transition);
+      color: var(--text-light);
+    }
+
+    .bottom-nav-item.active { color: var(--green); }
+
+    .bottom-nav-item .nav-icon {
+      font-size: 22px;
+      transition: var(--transition);
+    }
+
+    .bottom-nav-item.active .nav-icon { transform: scale(1.1); }
+
+    .bottom-nav-item span {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* ============================================================
+       HOME SCREEN
+    ============================================================ */
+    .home-header {
+      margin-bottom: 28px;
+    }
+
+    .home-header h2 {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--green);
+      line-height: 1.2;
+    }
+
+    .home-header p {
+      font-size: 14px;
+      color: var(--text-light);
+      margin-top: 4px;
+    }
+
+    .section-title {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-light);
+      margin-bottom: 12px;
+    }
+
+    .create-group-btn {
+      width: 100%;
+      padding: 18px 24px;
+      border-radius: var(--radius-lg);
+      border: 2px dashed var(--green-mid);
+      background: var(--green-subtle);
+      color: var(--green);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: var(--transition);
+      margin-bottom: 32px;
+    }
+    .create-group-btn:hover {
+      background: var(--cream-dark);
+      border-color: var(--green);
+      transform: translateY(-1px);
+    }
+
+    .group-card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      cursor: pointer;
+      transition: var(--transition);
+      border: 2px solid transparent;
+      margin-bottom: 12px;
+    }
+    .group-card:hover {
+      border-color: var(--green-subtle);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .group-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: var(--green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .group-info { flex: 1; min-width: 0; }
+
+    .group-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-dark);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .group-meta {
+      font-size: 13px;
+      color: var(--text-light);
+      margin-top: 3px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .group-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-public  { background: var(--green-subtle); color: var(--green); }
+    .badge-private { background: var(--cream-dark);   color: var(--text-mid); }
+    .badge-mode    { background: #FEF3CD; color: #856404; }
+
+    .group-arrow {
+      color: var(--text-light);
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-light);
+    }
+
+    .empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; line-height: 1.6; }
+
+    /* ============================================================
+       PROFILE SCREEN
+    ============================================================ */
+    .profile-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 32px 0 24px;
+      margin-bottom: 24px;
+    }
+
+    .profile-avatar-large {
+      width: 88px;
+      height: 88px;
+      border-radius: 24px;
+      background: var(--green);
+      color: var(--cream);
+      font-family: 'Playfair Display', serif;
+      font-size: 36px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .profile-avatar-large img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .avatar-upload-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: var(--transition);
+      font-size: 22px;
+    }
+    .profile-avatar-large:hover .avatar-upload-overlay { opacity: 1; }
+
+    .profile-name-display {
+      text-align: center;
+    }
+
+    .profile-name-display h2 {
+      font-size: 24px;
+      font-weight: 900;
+      color: var(--green);
+    }
+
+    .profile-name-display p {
+      font-size: 14px;
+      color: var(--text-light);
+      margin-top: 4px;
+    }
+
+    .profile-section {
+      margin-bottom: 24px;
+    }
+
+    .profile-section h3 {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-light);
+      margin-bottom: 12px;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .stat-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 16px 12px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+
+    .stat-value {
+      font-family: 'Playfair Display', serif;
+      font-size: 26px;
+      font-weight: 900;
+      color: var(--green);
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-light);
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    /* ============================================================
+       SUPERADMIN SCREEN
+    ============================================================ */
+    .admin-header {
+      background: var(--green);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .admin-header h2 {
+      color: var(--cream);
+      font-size: 20px;
+    }
+
+    .admin-header p {
+      color: rgba(245,240,232,0.65);
+      font-size: 13px;
+      margin-top: 2px;
+    }
+
+    .admin-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--cream-dark);
+      border-radius: var(--radius);
+      padding: 4px;
+      margin-bottom: 20px;
+    }
+
+    .admin-tab {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-light);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .admin-tab.active {
+      background: var(--white);
+      color: var(--green);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .admin-list-item {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .admin-list-item .item-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--green-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .admin-list-item .item-info { flex: 1; min-width: 0; }
+    .admin-list-item .item-name {
+      font-weight: 600;
+      font-size: 15px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .admin-list-item .item-sub {
+      font-size: 12px;
+      color: var(--text-light);
+      margin-top: 2px;
+    }
+
+    .admin-list-item .item-actions { display: flex; gap: 6px; }
+
+    /* View toggle banner */
+    .view-toggle-banner {
+      background: var(--gold);
+      color: var(--white);
+      padding: 10px 20px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .view-toggle-banner button {
+      background: rgba(255,255,255,0.25);
+      border: none;
+      color: var(--white);
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .view-toggle-banner button:hover { background: rgba(255,255,255,0.40); }
+
+    /* ============================================================
+       MODAL
+    ============================================================ */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 500;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: var(--white);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      padding: 28px 24px calc(28px + env(safe-area-inset-bottom));
+      width: 100%;
+      max-width: 480px;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-overlay.active .modal {
+      transform: translateY(0);
+    }
+
+    .modal-handle {
+      width: 40px;
+      height: 4px;
+      background: var(--cream-deeper);
+      border-radius: 2px;
+      margin: -8px auto 20px;
+    }
+
+    .modal-title {
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--green);
+      margin-bottom: 20px;
+    }
+
+    .modal-form { display: flex; flex-direction: column; gap: 16px; }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    /* ============================================================
+       FORGOT PASSWORD
+    ============================================================ */
+    #forgot-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: var(--cream);
+    }
+
+    .forgot-container {
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .back-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--green);
+      font-weight: 600;
+      font-size: 14px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      margin-bottom: 32px;
+      padding: 0;
+    }
+
+    /* ============================================================
+       GROUP SCREEN
+    ============================================================ */
+    #page-group { padding: 0; display: none; flex-direction: column; }
+    #page-group.active { display: flex; }
+    .group-screen-inner { max-width: 640px; margin: 0 auto; width: 100%; }
+    .tournament-banner { background: var(--green); color: var(--cream); padding: 14px 20px 16px; }
+    .tournament-banner .back-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .tournament-banner .back-row button { background: rgba(255,255,255,0.15); border: none; color: var(--cream); padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: var(--transition); }
+    .tournament-banner .back-row button:hover { background: rgba(255,255,255,0.28); }
+    .tournament-banner .group-title { font-size: 12px; font-weight: 700; color: rgba(245,240,232,0.6); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 2px; }
+    .tournament-banner h2 { font-size: 19px; font-weight: 900; color: var(--cream); line-height: 1.2; }
+    .tournament-banner .t-meta { font-size: 12px; color: rgba(245,240,232,0.7); margin-top: 5px; display: flex; flex-wrap: wrap; gap: 10px; }
+    .deadline-chip { display: inline-flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.15); border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 600; margin-top: 8px; }
+    .deadline-chip.expired { background: rgba(201,168,76,0.4); }
+    .group-tabs { display: flex; background: var(--white); border-bottom: 2px solid var(--cream-deeper); overflow-x: auto; scrollbar-width: none; }
+    .group-tabs::-webkit-scrollbar { display: none; }
+    .group-tab { flex-shrink: 0; padding: 13px 18px; border: none; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; color: var(--text-light); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: var(--transition); }
+    .group-tab.active { color: var(--green); border-bottom-color: var(--green); }
+    .group-tab-panel { padding: 16px 20px 24px; }
+    .group-tab-panel.hidden { display: none; }
+    .picks-status-bar { border-radius: var(--radius); padding: 11px 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 8px; }
+    .picks-status-bar.open   { background: #EAF7EE; border-left: 4px solid var(--success); }
+    .picks-status-bar.closed { background: #FEF3CD; border-left: 4px solid var(--gold); }
+    .picks-status-bar .ps-text { font-size: 13px; font-weight: 600; color: var(--text-mid); }
+    .picks-status-bar .ps-sub  { font-size: 11px; color: var(--text-light); margin-top: 1px; }
+    .region-pick-slot { background: var(--white); border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 10px; box-shadow: var(--shadow); border: 2px solid transparent; transition: var(--transition); }
+    .region-pick-slot.filled { border-color: var(--green-subtle); }
+    .region-pick-slot.locked { opacity: 0.65; pointer-events: none; }
+    .region-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+    .region-label.usa    { color: #B22234; }
+    .region-label.europe { color: #003399; }
+    .region-label.row    { color: var(--green-mid); }
+    .region-filter-row { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+    .region-filter-btn { padding: 4px 11px; border-radius: 20px; border: 2px solid var(--cream-deeper); background: transparent; font-size: 12px; font-weight: 600; cursor: pointer; transition: var(--transition); color: var(--text-mid); }
+    .region-filter-btn.active { background: var(--green); color: var(--cream); border-color: var(--green); }
+    .pick-search-wrap { position: relative; }
+    .pick-search-input { width: 100%; padding: 9px 13px; border-radius: var(--radius); border: 2px solid var(--cream-deeper); background: #FFFFFF; color: #1A1A1A; font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; transition: var(--transition); }
+    .pick-search-input:focus { border-color: var(--green); }
+    .pick-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow-lg); max-height: 190px; overflow-y: auto; z-index: 200; border: 1px solid var(--cream-deeper); }
+    .pick-dropdown-item { padding: 9px 13px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: background 0.15s; border-bottom: 1px solid var(--cream-dark); }
+    .pick-dropdown-item:last-child { border-bottom: none; }
+    .pick-dropdown-item:hover { background: var(--green-subtle); }
+    .pick-dropdown-item.used-pick { opacity: 0.38; cursor: not-allowed; pointer-events: none; }
+    .pick-dropdown-item .player-name { font-weight: 600; }
+    .pick-dropdown-item .player-country { font-size: 11px; color: var(--text-light); }
+    .selected-pick-display { display: flex; align-items: center; justify-content: space-between; padding: 8px 11px; background: var(--green-subtle); border-radius: var(--radius); margin-top: 7px; }
+    .selected-pick-display .pick-name    { font-weight: 600; font-size: 14px; color: var(--green); }
+    .selected-pick-display .pick-country { font-size: 11px; color: var(--green-mid); }
+    .selected-pick-display button        { background: none; border: none; color: var(--text-light); cursor: pointer; font-size: 17px; padding: 0 3px; line-height: 1; }
+    .leaderboard-item { background: var(--white); border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 10px; box-shadow: var(--shadow); border: 2px solid transparent; transition: var(--transition); }
+    .leaderboard-item.me { border-color: var(--green-subtle); }
+    .lb-top-row { display: flex; align-items: center; gap: 10px; }
+    .lb-rank { font-family: 'Playfair Display', serif; font-size: 19px; font-weight: 900; color: var(--green); min-width: 28px; text-align: center; }
+    .lb-avatar { width: 36px; height: 36px; border-radius: 9px; background: var(--green); color: var(--cream); font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+    .lb-info { flex: 1; min-width: 0; }
+    .lb-name { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 5px; }
+    .lb-pick-status { font-size: 12px; margin-top: 1px; }
+    .lb-pick-status.awaiting  { color: var(--text-light); }
+    .lb-pick-status.submitted { color: var(--success); font-weight: 600; }
+    .lb-score { font-family: 'Playfair Display', serif; font-size: 21px; font-weight: 900; color: var(--green); text-align: right; min-width: 48px; }
+    .lb-score.no-score { font-size: 13px; color: var(--text-light); font-family: 'DM Sans', sans-serif; font-weight: 400; }
+    .lb-picks-detail { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--cream-dark); display: flex; flex-direction: column; gap: 6px; }
+    .lb-pick-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; gap: 8px; }
+    .lb-pick-left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+    .lb-pick-left .pick-player { font-weight: 600; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lb-pick-left .pick-player.cut { color: var(--text-light); text-decoration: line-through; }
+    .lb-pick-left .pick-country-small { font-size: 11px; color: var(--text-light); display: flex; align-items: center; gap: 4px; }
+    .lb-pick-right { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+    .lb-pick-row .pick-region-tag { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 20px; text-transform: uppercase; flex-shrink: 0; }
+    .tag-usa    { background: #FFE8E8; color: #B22234; }
+    .tag-europe { background: #E8ECFF; color: #003399; }
+    .tag-row    { background: var(--green-subtle); color: var(--green-mid); }
+    .lb-pick-row .pick-score-val { font-weight: 700; color: var(--green); }
+    .lb-pick-row .pick-score-val.cut { color: var(--text-light); }
+    .lb-pick-row .pick-thru { font-size: 11px; color: var(--text-light); min-width: 22px; text-align: right; }
+    .golf-lb-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--cream-dark); font-size: 13px; }
+    .golf-lb-item:last-child { border-bottom: none; }
+    .golf-lb-pos { min-width: 30px; font-weight: 700; color: var(--text-light); text-align: center; font-size: 12px; flex-shrink: 0; }
+    .golf-lb-name { font-weight: 600; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .golf-lb-name.cut { color: var(--text-light); text-decoration: line-through; }
+    .golf-lb-country { font-size: 11px; color: var(--text-light); }
+    .golf-lb-score { font-weight: 700; min-width: 36px; text-align: right; flex-shrink: 0; }
+    .golf-lb-thru { font-size: 11px; color: var(--text-light); min-width: 26px; text-align: right; flex-shrink: 0; }
+    .golf-lb-item.my-pick { background: var(--green-subtle); border-radius: 6px; padding: 8px 8px; margin: 0 -4px; }
+    .member-item { background: var(--white); border-radius: var(--radius); padding: 12px 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 8px; box-shadow: var(--shadow); }
+    .member-avatar { width: 36px; height: 36px; border-radius: 9px; background: var(--green); color: var(--cream); font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .member-info { flex: 1; }
+    .member-name { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 5px; }
+    .member-role { font-size: 11px; color: var(--text-light); margin-top: 1px; }
+    .past-tournament-item { background: var(--white); border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 10px; box-shadow: var(--shadow); cursor: pointer; transition: var(--transition); }
+    .past-tournament-item:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+    .past-t-header { display: flex; align-items: center; justify-content: space-between; }
+    .past-t-name   { font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 700; color: var(--green); }
+    .past-t-date   { font-size: 12px; color: var(--text-light); }
+    .past-t-winner { font-size: 13px; color: var(--text-mid); margin-top: 3px; }
+    .score-positive { color: #C0392B; }
+    .score-negative { color: #27AE60; }
+    .score-even     { color: var(--text-mid); }
+
+    /* ============================================================
+       RESPONSIVE DESKTOP
+    ============================================================ */
+    @media (min-width: 640px) {
+      .page-content { padding: 32px 24px; }
+
+      .modal-overlay {
+        align-items: center;
+      }
+
+      .modal {
+        border-radius: var(--radius-lg);
+        transform: scale(0.95) translateY(10px);
+        max-width: 480px;
+      }
+
+      .modal-overlay.active .modal {
+        transform: scale(1) translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     TOAST CONTAINER
+============================================================ -->
+<div id="toast-container"></div>
+
+<!-- ============================================================
+     LOADING SCREEN
+============================================================ -->
+<div id="loading-screen">
+  <div style="text-align:center">
+    <div style="font-family:'Playfair Display',serif;font-size:36px;font-weight:900;color:var(--green);margin-bottom:8px;">WYNN</div>
+    <div class="spinner" style="margin:0 auto"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     AUTH SCREEN
+============================================================ -->
+<div id="auth-screen" class="hidden">
+  <div class="auth-container">
+
+    <div class="auth-logo">
+      <div class="logo-mark"><span>W</span></div>
+      <h1>WYNN</h1>
+      <p>Your fantasy sports companion</p>
+    </div>
+
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="switchAuthTab('login')">Sign In</button>
+        <button class="auth-tab" onclick="switchAuthTab('register')">Register</button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <div id="login-form" class="auth-form">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="login-email" placeholder="your@email.com" autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" />
+        </div>
+        <button class="btn btn-primary btn-full btn-lg" onclick="handleLogin()">Sign In</button>
+        <div class="auth-divider">
+          <a href="#" onclick="showScreen('forgot')">Forgot password?</a>
+        </div>
+      </div>
+
+      <!-- REGISTER FORM -->
+      <div id="register-form" class="auth-form hidden">
+        <div class="form-group">
+          <label>Display Name</label>
+          <input type="text" id="register-name" placeholder="Your name" maxlength="30" autocomplete="name" />
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="register-email" placeholder="your@email.com" autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="register-password" placeholder="Min. 6 characters" autocomplete="new-password" />
+        </div>
+        <button class="btn btn-primary btn-full btn-lg" onclick="handleRegister()">Create Account</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     FORGOT PASSWORD SCREEN
+============================================================ -->
+<div id="forgot-screen" class="hidden">
+  <div class="forgot-container">
+    <button class="back-btn" onclick="showScreen('auth')">← Back to Sign In</button>
+    <div class="card">
+      <h2 style="font-size:22px;color:var(--green);margin-bottom:8px;">Reset Password</h2>
+      <p style="font-size:14px;color:var(--text-light);margin-bottom:24px;">Enter your email and we'll send you a reset link.</p>
+      <div class="auth-form">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="forgot-email" placeholder="your@email.com" />
+        </div>
+        <button class="btn btn-primary btn-full" onclick="handleForgotPassword()">Send Reset Link</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MAIN APP SCREEN
+============================================================ -->
+<div id="app-screen">
+
+  <!-- Superadmin view toggle banner -->
+  <div id="view-toggle-banner" class="view-toggle-banner hidden">
+    👑 Superadmin Mode
+    <button onclick="toggleSuperadminView()">Switch to User View</button>
+  </div>
+  <div id="user-view-banner" class="hidden" style="background:var(--green-mid);color:var(--white);padding:10px 20px;text-align:center;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:12px;">
+    👤 Viewing as regular user
+    <button onclick="toggleSuperadminView()" style="background:rgba(255,255,255,0.25);border:none;color:var(--white);padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;">Back to Admin</button>
+  </div>
+
+  <!-- Top Nav -->
+  <nav class="top-nav">
+    <div class="nav-logo">WYNN</div>
+    <div class="nav-actions">
+      <span id="nav-superadmin-badge" class="superadmin-badge hidden">Admin</span>
+      <button class="nav-avatar" id="nav-avatar" onclick="navigateTo('profile')">?</button>
+    </div>
+  </nav>
+
+  <!-- Page: Home -->
+  <div id="page-home" class="page-content">
+    <div class="home-header">
+      <h2 id="home-greeting">Welcome back!</h2>
+      <p>Ready to play?</p>
+      <button id="pwa-install-btn" class="hidden" onclick="installPWA()" style="margin-top:10px;background:var(--green-subtle);border:none;color:var(--green);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;padding:8px 16px;border-radius:20px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+        📲 Add to Home Screen
+      </button>
+    </div>
+
+    <button class="create-group-btn" onclick="openCreateGroupModal()">
+      <span style="font-size:22px">＋</span>
+      Create a new group
+    </button>
+
+    <div class="section-title">My Groups</div>
+    <div id="my-groups-list">
+      <div class="empty-state">
+        <div class="empty-icon">⛳</div>
+        <p>You haven't joined any groups yet.<br>Create one or join a public group below.</p>
+      </div>
+    </div>
+
+    <div style="margin-bottom:32px;">
+      <div class="section-title">Join with Invite Code</div>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="invite-code-input" placeholder="Enter code e.g. AB12CD" maxlength="6" style="flex:1;padding:12px 14px;border-radius:var(--radius);border:2px solid var(--cream-deeper);background:#fff;color:#1a1a1a;font-family:'DM Sans',sans-serif;font-size:15px;outline:none;text-transform:uppercase;" />
+        <button class="btn btn-primary" onclick="joinGroupByCode(document.getElementById('invite-code-input').value)">Join</button>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:32px;">Public Groups</div>
+    <div id="public-groups-list">
+      <div class="empty-state">
+        <div class="empty-icon">🌍</div>
+        <p>No public groups available yet.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page: Profile -->
+  <div id="page-profile" class="page-content hidden">
+    <div class="profile-header">
+      <div class="profile-avatar-large" id="profile-avatar-large" onclick="triggerAvatarUpload()">
+        <span id="profile-avatar-initials">?</span>
+        <div class="avatar-upload-overlay">📷</div>
+      </div>
+      <input type="file" id="avatar-file-input" accept="image/*" class="hidden" onchange="handleAvatarUpload(event)" />
+      <div class="profile-name-display">
+        <h2 id="profile-display-name">Loading...</h2>
+        <p id="profile-email-display">...</p>
+      </div>
+    </div>
+
+    <div class="profile-section">
+      <h3>Statistics</h3>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-groups">0</div>
+          <div class="stat-label">Groups</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-tournaments">0</div>
+          <div class="stat-label">Tournaments</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-wins">0</div>
+          <div class="stat-label">Wins 👑</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="profile-section">
+      <h3>Account Settings</h3>
+      <div class="card" style="display:flex;flex-direction:column;gap:16px;">
+        <div class="form-group">
+          <label>Display Name</label>
+          <input type="text" id="edit-name" maxlength="30" placeholder="Your name" />
+        </div>
+        <button class="btn btn-primary" onclick="saveDisplayName()">Save Name</button>
+        <hr style="border:none;border-top:1px solid var(--cream-deeper);" />
+        <div class="form-group">
+          <label>New Password</label>
+          <input type="password" id="edit-password" placeholder="Min. 6 characters" />
+        </div>
+        <div class="form-group">
+          <label>Confirm Password</label>
+          <input type="password" id="edit-password-confirm" placeholder="Repeat password" />
+        </div>
+        <button class="btn btn-secondary" onclick="savePassword()">Update Password</button>
+      </div>
+    </div>
+
+    <div class="profile-section">
+      <button class="btn btn-ghost btn-full" onclick="handleLogout()" style="color:var(--error);">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Page: Superadmin -->
+  <div id="page-admin" class="page-content hidden">
+    <div class="admin-header">
+      <div>
+        <h2>Superadmin Panel</h2>
+        <p>Manage all users and groups</p>
+      </div>
+      <span style="font-size:28px">👑</span>
+    </div>
+
+    <div class="admin-tabs">
+      <button class="admin-tab active" onclick="switchAdminTab('users')">Users</button>
+      <button class="admin-tab" onclick="switchAdminTab('groups')">Groups</button>
+    </div>
+
+    <div id="admin-users-panel">
+      <div id="admin-users-list">
+        <div class="empty-state"><p>Loading users...</p></div>
+      </div>
+    </div>
+
+    <div id="admin-groups-panel" class="hidden">
+      <div id="admin-groups-list">
+        <div class="empty-state"><p>Loading groups...</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page: Group -->
+  <div id="page-group">
+    <div class="group-screen-inner">
+
+      <!-- Tournament Banner -->
+      <div class="tournament-banner">
+        <div class="back-row">
+          <button onclick="leaveGroupScreen()">← Back</button>
+        </div>
+        <div class="group-title" id="gs-group-name">Group</div>
+        <h2 id="gs-tournament-name">Loading tournament...</h2>
+        <div class="t-meta">
+          <span id="gs-tournament-date">📅 —</span>
+          <span id="gs-tournament-location">📍 —</span>
+          <span id="gs-format-badge">🏆 —</span>
+        </div>
+        <div class="deadline-chip" id="gs-deadline-chip">⏰ Deadline: Wed 22:00 CET</div>
+        <div id="gs-end-tournament-section" class="hidden" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button onclick="endTournament()" style="background:rgba(201,168,76,0.25);border:none;color:var(--cream);padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;">
+            🏁 End Tournament &amp; Save Results
+          </button>
+          <button onclick="deactivateTournament()" style="background:rgba(255,255,255,0.12);border:none;color:var(--cream);padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;">
+            ↩ Deaktivieren
+          </button>
+        </div>
+
+        <!-- Mode description -->
+        <div id="gs-mode-description" style="margin-top:12px;background:rgba(255,255,255,0.10);border-radius:10px;padding:10px 14px;">
+          <div style="font-size:11px;font-weight:700;color:rgba(245,240,232,0.6);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:5px;">How it works</div>
+          <div id="gs-mode-text" style="font-size:12px;color:rgba(245,240,232,0.85);line-height:1.5;"></div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="group-tabs">
+        <button class="group-tab active" onclick="switchGroupTab('leaderboard')">Leaderboard</button>
+        <button class="group-tab" onclick="switchGroupTab('picks')">My Picks</button>
+        <button class="group-tab" onclick="switchGroupTab('members')">Members</button>
+        <button class="group-tab gs-history-tab hidden" onclick="switchGroupTab('history')">History</button>
+      </div>
+
+      <!-- Tab: Leaderboard -->
+      <div id="gs-tab-leaderboard" class="group-tab-panel">
+        <div id="gs-last-updated" style="font-size:11px;color:var(--text-light);text-align:right;margin-bottom:8px;"></div>
+        <div id="gs-leaderboard-list">
+          <div class="empty-state"><div class="empty-icon">⛳</div><p>Loading leaderboard...</p></div>
+        </div>
+        <div id="gs-golf-leaderboard-section" class="hidden" style="margin-top:20px;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
+            <span>⛳ Turnier-Leaderboard</span>
+            <button class="btn btn-sm btn-ghost" style="font-size:11px;padding:4px 8px;" onclick="renderGolfLeaderboard(true)">↻</button>
+          </div>
+          <div id="gs-golf-leaderboard-list"></div>
+        </div>
+      </div>
+
+      <!-- Tab: My Picks -->
+      <div id="gs-tab-picks" class="group-tab-panel hidden">
+        <div class="picks-status-bar open" id="gs-picks-status-bar">
+          <div>
+            <div class="ps-text" id="gs-picks-status-text">Picks open</div>
+            <div class="ps-sub" id="gs-picks-status-sub">Deadline: Wednesday 22:00 CET</div>
+          </div>
+        </div>
+
+        <!-- Player field loader -->
+        <div id="gs-field-loader" style="margin-bottom:14px;">
+          <div id="gs-field-status" style="font-size:13px;color:var(--text-light);margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+            <span id="gs-field-count">Noch kein Starterfeld geladen</span>
+          </div>
+          <div id="gs-field-disclaimer" class="hidden" style="font-size:12px;line-height:1.5;padding:8px 12px;border-radius:8px;margin-bottom:8px;background:var(--cream-dark);"></div>
+          <button class="btn btn-secondary btn-full btn-sm" id="gs-load-field-btn" onclick="loadPlayerFieldManual()">
+            ↻ Starterfeld von ESPN laden
+          </button>
+        </div>
+
+        <!-- USA Pick -->
+        <div class="region-pick-slot" id="slot-usa">
+          <div class="region-label usa">🇺🇸 United States</div>
+          <div class="pick-search-wrap">
+            <input class="pick-search-input" id="search-usa" placeholder="Search USA players..." oninput="filterPlayers('usa')" onfocus="showDropdown('usa')" autocomplete="off" />
+            <div class="pick-dropdown hidden" id="dropdown-usa"></div>
+          </div>
+          <div class="selected-pick-display hidden" id="selected-usa">
+            <div><div class="pick-name" id="selected-usa-name"></div><div class="pick-country" id="selected-usa-country"></div></div>
+            <button onclick="clearPick('usa')">✕</button>
+          </div>
+        </div>
+
+        <!-- Europe Pick -->
+        <div class="region-pick-slot" id="slot-europe">
+          <div class="region-label europe">🇪🇺 Europe</div>
+          <div class="pick-search-wrap">
+            <input class="pick-search-input" id="search-europe" placeholder="Search European players..." oninput="filterPlayers('europe')" onfocus="showDropdown('europe')" autocomplete="off" />
+            <div class="pick-dropdown hidden" id="dropdown-europe"></div>
+          </div>
+          <div class="selected-pick-display hidden" id="selected-europe">
+            <div><div class="pick-name" id="selected-europe-name"></div><div class="pick-country" id="selected-europe-country"></div></div>
+            <button onclick="clearPick('europe')">✕</button>
+          </div>
+        </div>
+
+        <!-- Rest of World Pick -->
+        <div class="region-pick-slot" id="slot-row">
+          <div class="region-label row">🌏 Rest of World</div>
+          <div class="pick-search-wrap">
+            <input class="pick-search-input" id="search-row" placeholder="Search Rest of World players..." oninput="filterPlayers('row')" onfocus="showDropdown('row')" autocomplete="off" />
+            <div class="pick-dropdown hidden" id="dropdown-row"></div>
+          </div>
+          <div class="selected-pick-display hidden" id="selected-row">
+            <div><div class="pick-name" id="selected-row-name"></div><div class="pick-country" id="selected-row-country"></div></div>
+            <button onclick="clearPick('row')">✕</button>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-full save-picks-btn" id="gs-save-picks-btn" onclick="savePicks()">Save Picks</button>
+      </div>
+
+      <!-- Tab: Members -->
+      <div id="gs-tab-members" class="group-tab-panel hidden">
+        <div id="gs-members-list">
+          <div class="empty-state"><p>Loading members...</p></div>
+        </div>
+        <div id="gs-invite-section" class="hidden" style="margin-top:16px;">
+          <div class="card card-sm" style="background:var(--green-subtle);border:none;">
+            <div style="font-size:12px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px;">Invite Code</div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div id="gs-invite-code" style="font-family:'Playfair Display',serif;font-size:22px;font-weight:900;color:var(--green);letter-spacing:3px;"></div>
+              <button class="btn btn-sm btn-secondary" onclick="copyInviteCode()">Copy</button>
+            </div>
+          </div>
+        </div>
+        <div id="gs-join-section" class="hidden" style="margin-top:16px;">
+          <button class="btn btn-danger btn-full btn-sm" onclick="leaveGroup()">Leave Group</button>
+        </div>
+      </div>
+
+      <!-- Tab: History / Season Tournaments -->
+      <div id="gs-tab-history" class="group-tab-panel hidden">
+        <!-- Add tournament button (season mode, owner only) -->
+        <div id="gs-add-tournament-section" class="hidden" style="margin-bottom:16px;">
+          <button class="create-group-btn" style="margin-bottom:0" onclick="openAddTournamentModal()">
+            <span style="font-size:20px">＋</span> Add Tournament to Season
+          </button>
+        </div>
+        <div id="gs-history-list">
+          <div class="empty-state"><div class="empty-icon">📋</div><p>No tournaments added yet.</p></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <button class="bottom-nav-item active" id="nav-home" onclick="navigateTo('home')">
+      <span class="nav-icon">🏠</span>
+      <span>Home</span>
+    </button>
+    <button class="bottom-nav-item" id="nav-profile" onclick="navigateTo('profile')">
+      <span class="nav-icon">👤</span>
+      <span>Profile</span>
+    </button>
+    <button class="bottom-nav-item hidden" id="nav-admin" onclick="navigateTo('admin')">
+      <span class="nav-icon">👑</span>
+      <span>Admin</span>
+    </button>
+  </nav>
+
+</div>
+
+<!-- ============================================================
+     CREATE GROUP MODAL
+============================================================ -->
+<div id="create-group-modal" class="modal-overlay" onclick="closeModalOnOverlay(event, 'create-group-modal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Create a Group</div>
+    <div class="modal-form">
+      <div class="form-group">
+        <label>Group Name <span style="color:var(--text-light);font-weight:400;text-transform:none">(max 30 chars)</span></label>
+        <input type="text" id="new-group-name" placeholder="e.g. The Masters Crew" maxlength="30" />
+      </div>
+      <div class="form-group">
+        <label>Season Format</label>
+        <select id="new-group-format" onchange="onFormatChange()">
+          <option value="single">Single Tournament</option>
+          <option value="major_slam">Major Slam (4 Majors + FedEx)</option>
+          <option value="season">Custom Season</option>
+        </select>
+      </div>
+      <div id="tournament-picker-field" class="form-group">
+        <label>Select Tournament</label>
+        <select id="new-group-tournament">
+          <option value="">Loading tournaments...</option>
+        </select>
+      </div>
+      <div id="major-slam-info" class="hidden" style="background:var(--green-subtle);border-radius:var(--radius);padding:12px 14px;font-size:13px;color:var(--green);">
+        🏆 Includes: The Masters · PGA Championship · U.S. Open · The Open · FedEx Playoffs
+      </div>
+      <div id="season-info" class="hidden" style="background:var(--cream-dark);border-radius:var(--radius);padding:12px 14px;font-size:13px;color:var(--text-mid);">
+        📅 You can add tournaments to your season at any time from the group screen.
+      </div>
+      <div class="form-group">
+        <label>Visibility</label>
+        <select id="new-group-visibility">
+          <option value="public">🌐 Public (anyone can join, max 20)</option>
+          <option value="private">🔒 Private (invite code only)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Money Game?</label>
+        <select id="new-group-money">
+          <option value="no">No — just for fun</option>
+          <option value="yes">Yes — playing for money</option>
+        </select>
+      </div>
+      <div id="stake-field" class="form-group hidden">
+        <label>Stake Amount</label>
+        <input type="text" id="new-group-stake" placeholder="e.g. €10 per tournament" maxlength="50" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" style="flex:1" onclick="closeModal('create-group-modal')">Cancel</button>
+        <button class="btn btn-primary" style="flex:2" onclick="handleCreateGroup()">Create Group</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     ADD TOURNAMENT MODAL (Season mode)
+============================================================ -->
+<div id="add-tournament-modal" class="modal-overlay" onclick="closeModalOnOverlay(event, 'add-tournament-modal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add Tournament</div>
+    <div class="modal-form">
+      <div class="form-group">
+        <label>Select Tournament</label>
+        <select id="add-tournament-select">
+          <option value="">Loading...</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" style="flex:1" onclick="closeModal('add-tournament-modal')">Cancel</button>
+        <button class="btn btn-primary" style="flex:2" onclick="confirmAddTournament()">Add to Season</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     ADMIN SET PICKS MODAL
+============================================================ -->
+<div id="admin-picks-modal" class="modal-overlay" onclick="closeModalOnOverlay(event,'admin-picks-modal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✏️ Set Picks for Member</div>
+    <div class="modal-form">
+      <div class="form-group">
+        <label>Group</label>
+        <select id="admin-picks-group"></select>
+      </div>
+      <div class="form-group">
+        <label>Member</label>
+        <select id="admin-picks-user"></select>
+      </div>
+      <div class="form-group">
+        <label>🇺🇸 USA Player</label>
+        <input type="text" id="admin-pick-usa" placeholder="e.g. Scottie Scheffler" />
+      </div>
+      <div class="form-group">
+        <label>🇪🇺 Europe Player</label>
+        <input type="text" id="admin-pick-europe" placeholder="e.g. Rory McIlroy" />
+      </div>
+      <div class="form-group">
+        <label>🌏 Rest of World Player</label>
+        <input type="text" id="admin-pick-row" placeholder="e.g. Hideki Matsuyama" />
+      </div>
+      <p style="font-size:12px;color:var(--text-light);margin-top:-8px;">
+        Player names must match exactly as they appear in the tournament field.
+      </p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" style="flex:1" onclick="closeModal('admin-picks-modal')">Cancel</button>
+        <button class="btn btn-primary" style="flex:2" onclick="confirmAdminSetPicks()">Save Picks</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     FIREBASE SDK
+============================================================ -->
+<script type="module">
+  import { initializeApp }                          from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword,
+           signInWithEmailAndPassword, signOut,
+           onAuthStateChanged, updateProfile,
+           updatePassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getDatabase, ref, set, get, push,
+           onValue, update, remove }                from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  /* ----------------------------------------------------------
+     FIREBASE CONFIG
+  ---------------------------------------------------------- */
+  const firebaseConfig = {
+    apiKey:            "AIzaSyChgmzDq9iYGFNz3tWj6nineNJrgW2z1T4",
+    authDomain:        "wynn-2.firebaseapp.com",
+    databaseURL:       "https://wynn-2-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId:         "wynn-2",
+    storageBucket:     "wynn-2.firebasestorage.app",
+    messagingSenderId: "110463664716",
+    appId:             "1:110463664716:web:3ce4c5e1dcfce187ae6ae9"
+  };
+
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db   = getDatabase(app);
+
+  /* ----------------------------------------------------------
+     CONSTANTS
+  ---------------------------------------------------------- */
+  const SUPERADMIN_EMAIL = "timoschulze20@gmail.com";
+
+  /* ----------------------------------------------------------
+     STATE
+  ---------------------------------------------------------- */
+  window._group = window._group || {};
+  window._state = {
+    user:            null,
+    isSuperadmin:    false,
+    viewingAsUser:   false,
+    groups:          {},
+  };
+
+  /* ----------------------------------------------------------
+     EXPOSE FUNCTIONS TO GLOBAL SCOPE
+  ---------------------------------------------------------- */
+
+  // --- AUTH ---
+  window.handleLogin = async () => {
+    const email    = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!email || !password) return showToast('Please fill in all fields.', 'error');
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (e) {
+      showToast(friendlyAuthError(e.code), 'error');
+    }
+  };
+
+  window.handleRegister = async () => {
+    const name     = document.getElementById('register-name').value.trim();
+    const email    = document.getElementById('register-email').value.trim();
+    const password = document.getElementById('register-password').value;
+    if (!name || !email || !password) return showToast('Please fill in all fields.', 'error');
+    if (name.length > 30)             return showToast('Name must be 30 characters or less.', 'error');
+    if (password.length < 6)          return showToast('Password must be at least 6 characters.', 'error');
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(cred.user, { displayName: name });
+      await set(ref(db, `users/${cred.user.uid}`), {
+        name,
+        email,
+        createdAt: Date.now(),
+        isSuperadmin: email === SUPERADMIN_EMAIL
+      });
+      showToast('Account created! Welcome to WYNN 🎉', 'success');
+    } catch (e) {
+      showToast(friendlyAuthError(e.code), 'error');
+    }
+  };
+
+  window.handleLogout = async () => {
+    await signOut(auth);
+    showScreen('auth');
+  };
+
+  window.handleForgotPassword = async () => {
+    const email = document.getElementById('forgot-email').value.trim();
+    if (!email) return showToast('Please enter your email.', 'error');
+    try {
+      await sendPasswordResetEmail(auth, email);
+      showToast('Reset link sent! Check your inbox.', 'success');
+      showScreen('auth');
+    } catch (e) {
+      showToast(friendlyAuthError(e.code), 'error');
+    }
+  };
+
+  // --- PROFILE ---
+  window.saveDisplayName = async () => {
+    const name = document.getElementById('edit-name').value.trim();
+    if (!name)          return showToast('Name cannot be empty.', 'error');
+    if (name.length>30) return showToast('Name must be 30 characters or less.', 'error');
+    try {
+      await updateProfile(auth.currentUser, { displayName: name });
+      await update(ref(db, `users/${auth.currentUser.uid}`), { name });
+      showToast('Name updated! ✓', 'success');
+      refreshProfileUI();
+    } catch (e) {
+      showToast('Error saving name.', 'error');
+    }
+  };
+
+  window.savePassword = async () => {
+    const pw1 = document.getElementById('edit-password').value;
+    const pw2 = document.getElementById('edit-password-confirm').value;
+    if (!pw1 || !pw2)    return showToast('Please fill both fields.', 'error');
+    if (pw1 !== pw2)     return showToast('Passwords do not match.', 'error');
+    if (pw1.length < 6)  return showToast('Password must be at least 6 characters.', 'error');
+    try {
+      await updatePassword(auth.currentUser, pw1);
+      document.getElementById('edit-password').value = '';
+      document.getElementById('edit-password-confirm').value = '';
+      showToast('Password updated! ✓', 'success');
+    } catch (e) {
+      showToast('Error updating password. Try re-logging first.', 'error');
+    }
+  };
+
+  window.triggerAvatarUpload = () => {
+    document.getElementById('avatar-file-input').click();
+  };
+
+  window.handleAvatarUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    try {
+      const base64 = await resizeImage(file, 200);
+      await update(ref(db, `users/${auth.currentUser.uid}`), { avatarBase64: base64 });
+      await updateProfile(auth.currentUser, { photoURL: base64 });
+      refreshProfileUI();
+      showToast('Profile picture updated! ✓', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Error uploading picture.', 'error');
+    }
+  };
+
+  function resizeImage(file, maxSize) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onerror = reject;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let w = img.width, h = img.height;
+          if (w > h) { if (w > maxSize) { h = h * maxSize / w; w = maxSize; } }
+          else       { if (h > maxSize) { w = w * maxSize / h; h = maxSize; } }
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.75));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // --- SUPERADMIN ---
+  window.toggleSuperadminView = () => {
+    window._state.viewingAsUser = !window._state.viewingAsUser;
+    applyViewMode();
+  };
+
+  // --- GROUPS ---
+  window.openCreateGroupModal = () => {
+    openModal('create-group-modal');
+    onFormatChange();
+    loadTournamentPicker();
+  };
+
+  window.onFormatChange = () => {
+    const fmt = document.getElementById('new-group-format').value;
+    document.getElementById('tournament-picker-field').classList.toggle('hidden', fmt !== 'single');
+    document.getElementById('major-slam-info').classList.toggle('hidden', fmt !== 'major_slam');
+    document.getElementById('season-info').classList.toggle('hidden', fmt !== 'season');
+  };
+
+  const PGA_SCHEDULE_2026 = [
+    { id: 'sony-open-2026',        name: 'Sony Open in Hawaii',             date: '2026-01-08' },
+    { id: 'american-express-2026', name: 'The American Express',            date: '2026-01-15' },
+    { id: 'farmers-2026',          name: 'Farmers Insurance Open',          date: '2026-01-22' },
+    { id: 'att-pebble-2026',       name: 'AT&T Pebble Beach Pro-Am',        date: '2026-02-05' },
+    { id: 'wm-phoenix-2026',       name: 'WM Phoenix Open',                 date: '2026-02-05' },
+    { id: 'genesis-inv-2026',      name: 'Genesis Invitational',            date: '2026-02-19' },
+    { id: 'cognizant-2026',        name: 'Cognizant Classic',               date: '2026-02-26' },
+    { id: 'arnold-palmer-2026',    name: 'Arnold Palmer Invitational',      date: '2026-03-05' },
+    { id: 'players-2026',          name: 'The Players Championship',        date: '2026-03-12' },
+    { id: 'valspar-2026',          name: 'Valspar Championship',            date: '2026-03-19' },
+    { id: 'texas-childrens-2026',  name: "Texas Children's Houston Open",   date: '2026-03-26' },
+    { id: 'valero-texas-2026',     name: 'Valero Texas Open',               date: '2026-04-02' },
+    { id: 'masters-2026',          name: 'The Masters',                     date: '2026-04-09' },
+    { id: 'rbc-heritage-2026',     name: 'RBC Heritage',                    date: '2026-04-16' },
+    { id: 'zurich-2026',           name: 'Zurich Classic of New Orleans',   date: '2026-04-23' },
+    { id: 'wells-fargo-2026',      name: 'Wells Fargo Championship',        date: '2026-05-07' },
+    { id: 'pga-champ-2026',        name: 'PGA Championship',                date: '2026-05-14' },
+    { id: 'charles-schwab-2026',   name: 'Charles Schwab Challenge',        date: '2026-05-21' },
+    { id: 'rbc-canadian-2026',     name: 'RBC Canadian Open',               date: '2026-05-28' },
+    { id: 'memorial-2026',         name: 'The Memorial Tournament',         date: '2026-06-04' },
+    { id: 'us-open-2026',          name: 'U.S. Open',                       date: '2026-06-18' },
+    { id: 'travelers-2026',        name: 'Travelers Championship',          date: '2026-06-25' },
+    { id: 'rocket-2026',           name: 'Rocket Mortgage Classic',         date: '2026-07-02' },
+    { id: 'john-deere-2026',       name: 'John Deere Classic',              date: '2026-07-09' },
+    { id: 'genesis-scottish-2026', name: 'Genesis Scottish Open',           date: '2026-07-09' },
+    { id: 'the-open-2026',         name: 'The Open Championship',           date: '2026-07-16' },
+    { id: 'barracuda-2026',        name: 'Barracuda Championship',          date: '2026-07-16' },
+    { id: 'wyndham-2026',          name: 'Wyndham Championship',            date: '2026-08-06' },
+    { id: 'fedex-st-jude-2026',    name: 'FedEx St. Jude Championship',     date: '2026-08-13' },
+    { id: 'bmw-2026',              name: 'BMW Championship',                date: '2026-08-20' },
+    { id: 'tour-champ-2026',       name: 'TOUR Championship',               date: '2026-08-27' },
+  ];
+
+  window.fetchPGASchedule = async () => {
+    let list = [...PGA_SCHEDULE_2026];
+    try {
+      const PROXY = 'https://corsproxy.io/?';
+      const url = 'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard?dates=20260101-20261231&limit=50';
+      const res  = await fetch(PROXY + encodeURIComponent(url));
+      const data = await res.json();
+      const events = data?.events || [];
+      if (events.length > 0) {
+        const espnList = events.map(e => ({
+          id:   e.id,
+          name: e.name,
+          date: e.date?.split('T')[0] || '',
+          live: e.status?.type?.state === 'in' || e.status?.type?.state === 'pre',
+        }));
+        list = espnList;
+      }
+    } catch(e) { /* use static fallback */ }
+    const cutoff = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    return list
+      .filter(t => t.date && new Date(t.date) >= cutoff)
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+  };
+
+  window.loadTournamentPicker = async (selectId = 'new-group-tournament') => {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Loading tournaments...</option>';
+    const upcoming = await fetchPGASchedule();
+    if (!upcoming.length) {
+      sel.innerHTML = '<option value="">No upcoming tournaments found</option>';
+      return;
+    }
+    sel.innerHTML = upcoming.map(t => {
+      const dateStr = t.date ? new Date(t.date).toLocaleDateString('en-GB', { day:'numeric', month:'short' }) : '';
+      const liveTag = t.live ? ' 🟢 Live' : '';
+      return `<option value="${t.id}" data-name="${t.name}" data-date="${t.date}">${t.name}${liveTag} · ${dateStr}</option>`;
+    }).join('');
+  };
+
+  window.handleCreateGroup = async () => {
+    const name       = document.getElementById('new-group-name').value.trim();
+    const format     = document.getElementById('new-group-format').value;
+    const visibility = document.getElementById('new-group-visibility').value;
+    const isMoney    = document.getElementById('new-group-money').value === 'yes';
+    const stake      = isMoney ? document.getElementById('new-group-stake').value.trim() : null;
+
+    if (!name) return showToast('Please enter a group name.', 'error');
+    if (name.length > 30) return showToast('Group name must be 30 characters or less.', 'error');
+
+    let tournament = null;
+    if (format === 'single') {
+      const sel = document.getElementById('new-group-tournament');
+      const tid = sel.value;
+      if (!tid) return showToast('Please select a tournament.', 'error');
+      tournament = { id: tid, name: sel.options[sel.selectedIndex].dataset.name || sel.options[sel.selectedIndex].text };
+    }
+
+    try {
+      const allSnap = await get(ref(db, 'groups'));
+      if (allSnap.exists()) {
+        const existing = Object.values(allSnap.val()).map(g => g.name.toLowerCase());
+        if (existing.includes(name.toLowerCase())) {
+          return showToast('A group with this name already exists. Please choose a different name.', 'error');
+        }
+      }
+    } catch(e) { /* continue */ }
+
+    try {
+      const groupRef   = push(ref(db, 'groups'));
+      const inviteCode = visibility === 'private' ? generateInviteCode() : null;
+      const majorTournaments = format === 'major_slam' ? [
+        { id: 'masters',   name: 'The Masters' },
+        { id: 'pga-champ', name: 'PGA Championship' },
+        { id: 'us-open',   name: 'U.S. Open' },
+        { id: 'the-open',  name: 'The Open Championship' },
+        { id: 'fedex',     name: 'FedEx Cup Playoffs' },
+      ] : null;
+
+      await set(groupRef, {
+        name,
+        sport:      'golf',
+        mode:       'continental_picks',
+        format,
+        visibility,
+        isMoney,
+        stake:      stake || null,
+        inviteCode: inviteCode || null,
+        tournament: tournament || null,
+        majorTournaments: majorTournaments || null,
+        currentTournamentIndex: format === 'major_slam' ? 0 : null,
+        ownerId:    auth.currentUser.uid,
+        ownerName:  auth.currentUser.displayName,
+        members:    { [auth.currentUser.uid]: true },
+        memberCount: 1,
+        createdAt:  Date.now()
+      });
+      closeModal('create-group-modal');
+      showToast(`Group "${name}" created! 🎉`, 'success');
+      if (inviteCode) showToast(`Invite code: ${inviteCode}`, 'info');
+      loadGroups();
+    } catch (e) {
+      showToast('Error creating group.', 'error');
+    }
+  };
+
+  document.getElementById('new-group-money').addEventListener('change', (e) => {
+    document.getElementById('stake-field').classList.toggle('hidden', e.target.value !== 'yes');
+  });
+
+  // --- ADMIN PANEL ---
+  window.loadAdminUsers = async () => {
+    const snap = await get(ref(db, 'users'));
+    const list = document.getElementById('admin-users-list');
+    if (!snap.exists()) { list.innerHTML = '<div class="empty-state"><p>No users yet.</p></div>'; return; }
+    const users = snap.val();
+    list.innerHTML = Object.entries(users).map(([uid, u]) => `
+      <div class="admin-list-item">
+        <div class="item-icon">${u.avatarBase64 ? `<img src="${u.avatarBase64}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">` : '👤'}</div>
+        <div class="item-info">
+          <div class="item-name">${escHtml(u.name)} ${u.isSuperadmin ? '👑' : ''}</div>
+          <div class="item-sub">${escHtml(u.email)}</div>
+        </div>
+        <div class="item-actions">
+          ${uid !== auth.currentUser.uid ? `<button class="btn btn-danger btn-sm" onclick="deleteUser('${uid}','${escHtml(u.name)}')">Delete</button>` : '<span style="font-size:12px;color:var(--text-light)">You</span>'}
+        </div>
+      </div>
+    `).join('');
+  };
+
+  window.loadAdminGroups = async () => {
+    const snap = await get(ref(db, 'groups'));
+    const list = document.getElementById('admin-groups-list');
+    if (!snap.exists()) { list.innerHTML = '<div class="empty-state"><p>No groups yet.</p></div>'; return; }
+    const groups = snap.val();
+    list.innerHTML = Object.entries(groups).map(([gid, g]) => `
+      <div class="admin-list-item">
+        <div class="item-icon">⛳</div>
+        <div class="item-info">
+          <div class="item-name">${escHtml(g.name)}</div>
+          <div class="item-sub">${g.memberCount || 1} member(s) · ${escHtml(g.ownerName)} · ${g.visibility}</div>
+        </div>
+        <div class="item-actions">
+          <button class="btn btn-secondary btn-sm" onclick="adminSetPicks('${gid}','${escHtml(g.name)}')">✏️ Picks</button>
+          <button class="btn btn-danger btn-sm" onclick="adminDeleteGroup('${gid}','${escHtml(g.name)}')">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  };
+
+  window.adminSetPicks = async (gid, groupName) => {
+    const gSnap = await get(ref(db, `groups/${gid}`));
+    if (!gSnap.exists()) return;
+    const g = gSnap.val();
+    const members = g.members || {};
+    const gSel = document.getElementById('admin-picks-group');
+    gSel.innerHTML = `<option value="${gid}">${escHtml(groupName)}</option>`;
+    const uSel = document.getElementById('admin-picks-user');
+    uSel.innerHTML = '<option value="">Loading...</option>';
+    const userEntries = await Promise.all(Object.keys(members).map(async uid => {
+      const uSnap = await get(ref(db, `users/${uid}`));
+      return { uid, name: uSnap.exists() ? uSnap.val().name : 'Unknown' };
+    }));
+    uSel.innerHTML = userEntries.map(u =>
+      `<option value="${u.uid}">${escHtml(u.name)}</option>`
+    ).join('');
+    document.getElementById('admin-picks-modal').dataset.gid = gid;
+    openModal('admin-picks-modal');
+  };
+
+  window.confirmAdminSetPicks = async () => {
+    const gid     = document.getElementById('admin-picks-modal').dataset.gid;
+    const uid     = document.getElementById('admin-picks-user').value;
+    const usaName = document.getElementById('admin-pick-usa').value.trim();
+    const eurName = document.getElementById('admin-pick-europe').value.trim();
+    const rowName = document.getElementById('admin-pick-row').value.trim();
+    if (!uid || !usaName || !eurName || !rowName) return showToast('Please fill all fields.', 'error');
+
+    const allPlayers = window._group?.players || [];
+    const findPlayer = (name, region) => {
+      const q = name.toLowerCase();
+      const match = allPlayers.find(p =>
+        p.region === region && p.name.toLowerCase() === q
+      ) || allPlayers.find(p =>
+        p.name.toLowerCase().includes(q) || q.includes(p.name.toLowerCase())
+      );
+      if (match) return { id: match.id, name: match.name, country: match.country };
+      return { id: name.toLowerCase().replace(/\s+/g,'-'), name, country: region === 'usa' ? 'United States' : region === 'europe' ? 'Europe' : 'International' };
+    };
+
+    const picks = {
+      usa:    findPlayer(usaName, 'usa'),
+      europe: findPlayer(eurName, 'europe'),
+      row:    findPlayer(rowName, 'row'),
+      submitted: true,
+      savedAt: Date.now(),
+      setByAdmin: true,
+    };
+
+    const notFound = [];
+    if (!allPlayers.find(p => p.id === picks.usa.id))    notFound.push(usaName);
+    if (!allPlayers.find(p => p.id === picks.europe.id)) notFound.push(eurName);
+    if (!allPlayers.find(p => p.id === picks.row.id))    notFound.push(rowName);
+
+    await set(ref(db, `groups/${gid}/picks/${uid}`), picks);
+    closeModal('admin-picks-modal');
+    if (notFound.length) {
+      showToast(`Picks saved but some players not found in field: ${notFound.join(', ')}. Load player field first for accurate scores.`, 'error');
+    } else {
+      showToast('Picks saved with correct ESPN IDs ✓', 'success');
+    }
+  };
+
+  window.deleteUser = async (uid, name) => {
+    if (!confirm(`Delete user "${name}"? This cannot be undone.`)) return;
+    await remove(ref(db, `users/${uid}`));
+    showToast(`User "${name}" deleted.`, 'info');
+    loadAdminUsers();
+  };
+
+  window.adminDeleteGroup = async (gid, name) => {
+    if (!confirm(`Delete group "${name}"? This cannot be undone.`)) return;
+    await remove(ref(db, `groups/${gid}`));
+    showToast(`Group "${name}" deleted.`, 'info');
+    loadAdminGroups();
+  };
+
+  /* ----------------------------------------------------------
+     LOAD GROUPS FOR HOME SCREEN
+  ---------------------------------------------------------- */
+  function loadGroups() {
+    const uid = auth.currentUser.uid;
+    onValue(ref(db, 'groups'), (snap) => {
+      const myList     = document.getElementById('my-groups-list');
+      const publicList = document.getElementById('public-groups-list');
+      if (!snap.exists()) {
+        myList.innerHTML     = emptyState('⛳', "You haven't joined any groups yet.<br>Create one or join a public group below.");
+        publicList.innerHTML = emptyState('🌍', 'No public groups available yet.');
+        return;
+      }
+      const groups  = snap.val();
+      let myHTML    = '';
+      let publicHTML = '';
+      Object.entries(groups).forEach(([gid, g]) => {
+        const isMember = g.members && g.members[uid];
+        const card = groupCard(gid, g, isMember);
+        if (isMember)                       myHTML     += card;
+        else if (g.visibility === 'public') publicHTML += card;
+      });
+      myList.innerHTML     = myHTML     || emptyState('⛳', "You haven't joined any groups yet.");
+      publicList.innerHTML = publicHTML || emptyState('🌍', 'No public groups available yet.');
+    });
+  }
+
+  function groupCard(gid, g, isMember) {
+    return `
+      <div class="group-card" onclick="openGroup('${gid}')">
+        <div class="group-icon">⛳</div>
+        <div class="group-info">
+          <div class="group-name">${escHtml(g.name)}</div>
+          <div class="group-meta">
+            <span class="group-badge badge-${g.visibility}">${g.visibility}</span>
+            <span class="group-badge badge-mode">${formatMode(g.format)}</span>
+            <span>${g.memberCount || 1} player${(g.memberCount||1)>1?'s':''}</span>
+          </div>
+        </div>
+        <div class="group-arrow">›</div>
+      </div>`;
+  }
+
+  /* ----------------------------------------------------------
+     AUTH STATE LISTENER
+  ---------------------------------------------------------- */
+  onAuthStateChanged(auth, async (user) => {
+    document.getElementById('loading-screen').classList.add('hidden');
+    if (user) {
+      window._state.user         = user;
+      window._state.isSuperadmin = user.email === SUPERADMIN_EMAIL;
+      if (window._state.isSuperadmin) {
+        await update(ref(db, `users/${user.uid}`), { isSuperadmin: true });
+      }
+      showScreen('app');
+      refreshProfileUI();
+      applyViewMode();
+      loadGroups();
+    } else {
+      window._state.user         = null;
+      window._state.isSuperadmin = false;
+      showScreen('auth');
+    }
+  });
+
+  /* ----------------------------------------------------------
+     UI HELPERS
+  ---------------------------------------------------------- */
+  function refreshProfileUI() {
+    const user = auth.currentUser;
+    if (!user) return;
+    const name    = user.displayName || 'Player';
+    const initial = name.charAt(0).toUpperCase();
+
+    document.getElementById('nav-avatar').textContent           = initial;
+    document.getElementById('profile-avatar-initials').textContent = initial;
+    document.getElementById('profile-display-name').textContent = name;
+    document.getElementById('profile-email-display').textContent = user.email;
+    document.getElementById('edit-name').value                  = name;
+    document.getElementById('home-greeting').textContent        = `Welcome back, ${name.split(' ')[0]}!`;
+
+    const photoURL = user.photoURL;
+    if (photoURL && photoURL.startsWith('data:')) {
+      const avatarLarge = document.getElementById('profile-avatar-large');
+      let imgLarge = avatarLarge.querySelector('img');
+      if (!imgLarge) {
+        imgLarge = document.createElement('img');
+        imgLarge.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:24px;';
+        avatarLarge.appendChild(imgLarge);
+      }
+      imgLarge.src = photoURL;
+      document.getElementById('profile-avatar-initials').style.display = 'none';
+      const navAvatar = document.getElementById('nav-avatar');
+      navAvatar.textContent = '';
+      navAvatar.style.overflow = 'hidden';
+      navAvatar.style.padding = '0';
+      let imgNav = navAvatar.querySelector('img');
+      if (!imgNav) {
+        imgNav = document.createElement('img');
+        imgNav.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:10px;display:block;';
+        navAvatar.appendChild(imgNav);
+      }
+      imgNav.src = photoURL;
+    } else {
+      document.getElementById('profile-avatar-initials').style.display = '';
+      const navAvatar = document.getElementById('nav-avatar');
+      navAvatar.style.overflow = '';
+      navAvatar.style.padding = '';
+      const imgNav = navAvatar.querySelector('img');
+      if (imgNav) imgNav.remove();
+      navAvatar.textContent = initial;
+    }
+  }
+
+  function applyViewMode() {
+    const isSA          = window._state.isSuperadmin;
+    const viewingAsUser = window._state.viewingAsUser;
+    document.getElementById('view-toggle-banner').classList.toggle('hidden', !isSA || viewingAsUser);
+    document.getElementById('user-view-banner').classList.toggle('hidden', !isSA || !viewingAsUser);
+    const showAdmin = isSA && !viewingAsUser;
+    document.getElementById('nav-admin').classList.toggle('hidden', !showAdmin);
+    document.getElementById('nav-superadmin-badge').classList.toggle('hidden', !showAdmin);
+  }
+
+  window.switchAdminTab = (tab) => {
+    document.querySelectorAll('.admin-tab').forEach((t,i) => {
+      t.classList.toggle('active', (i===0 && tab==='users') || (i===1 && tab==='groups'));
+    });
+    document.getElementById('admin-users-panel').classList.toggle('hidden',  tab !== 'users');
+    document.getElementById('admin-groups-panel').classList.toggle('hidden', tab !== 'groups');
+    if (tab === 'users')  loadAdminUsers();
+    if (tab === 'groups') loadAdminGroups();
+  };
+
+  /* ----------------------------------------------------------
+     HELPERS: MISC
+  ---------------------------------------------------------- */
+  function generateInviteCode() {
+    return Math.random().toString(36).substring(2,8).toUpperCase();
+  }
+
+  function formatMode(format) {
+    return { single: 'Single', major_slam: 'Major Slam', season: 'Season' }[format] || format;
+  }
+
+  function escHtml(str) {
+    return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function escJs(str) {
+    return String(str||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  }
+  window.setActiveTournamentFromEl = function(el) {
+    setActiveTournament(el.dataset.tid, el.dataset.tname, el.dataset.tdate || '');
+  };
+
+  function emptyState(icon, text) {
+    return `<div class="empty-state"><div class="empty-icon">${icon}</div><p>${text}</p></div>`;
+  }
+
+
+  /* ==========================================================
+     GROUP SCREEN
+  ========================================================== */
+
+  function getRegion(country) {
+    if (!country) return 'row';
+    const c = country.toLowerCase().trim();
+
+    const usaVariants = ['usa','us','u.s.','united states','united states of america'];
+    if (usaVariants.includes(c)) return 'usa';
+
+    const europeVariants = [
+      'england','scotland','ireland','northern ireland','wales','great britain',
+      'spain','germany','france','sweden','norway','denmark','belgium','netherlands',
+      'holland','italy','austria','switzerland','finland','czech republic','czechia',
+      'slovakia','poland','hungary','romania','bulgaria','greece','portugal',
+      'serbia','croatia','slovenia','bosnia','montenegro','albania','kosovo',
+      'north macedonia','moldova','ukraine','belarus','lithuania','latvia','estonia',
+      'luxembourg','malta','cyprus','iceland','liechtenstein','andorra','monaco',
+      'san marino',
+      'eng','sco','irl','nir','wal','esp','ger','fra','swe','nor','den',
+      'bel','ned','ita','aut','sui','fin','cze','svk','pol','hun','rou',
+      'bul','gre','por','srb','cro','svn','bih','mne','alb','mkd','ltu',
+      'lva','est','lux','mlt','cyp','isl',
+    ];
+    if (europeVariants.includes(c)) return 'europe';
+
+    return 'row';
+  }
+
+  window._group = {
+    id: null, data: null,
+    players: [],
+    myPicks: { usa: null, europe: null, row: null },
+    usedPicksThisSeason: [],
+    deadlinePassed: false,
+    scores: {},
+    memberData: {},
+  };
+
+  window.openGroup = async (gid) => {
+    const snap = await get(ref(db, `groups/${gid}`));
+    if (!snap.exists()) { showToast('Group not found.', 'error'); return; }
+    window._group.id   = gid;
+    window._group.data = JSON.parse(JSON.stringify(snap.val()));
+    window._group.myPicks = { usa: null, europe: null, row: null };
+
+    ['home','profile','admin'].forEach(p => {
+      document.getElementById(`page-${p}`).classList.add('hidden');
+    });
+    document.getElementById('page-group').classList.add('active');
+    ['home','profile','admin'].forEach(p => {
+      const b = document.getElementById(`nav-${p}`);
+      if (b) b.classList.remove('active');
+    });
+
+    switchGroupTab('leaderboard');
+
+    try {
+      if (!window._group.data.deadlineTimestamp) {
+        const g = window._group.data;
+        let fixDate = null;
+        if (g.format === 'single' && g.tournament?.date) fixDate = g.tournament.date;
+        else if (g.format === 'season' && g.activeTournament?.date) fixDate = g.activeTournament.date;
+        else if (g.format === 'major_slam') fixDate = '2026-04-09';
+        if (fixDate) {
+          const ts = calcDeadlineForTournament(fixDate).getTime();
+          await update(ref(db, `groups/${window._group.id}`), { deadlineTimestamp: ts });
+          window._group.data.deadlineTimestamp = ts;
+        }
+      }
+    } catch(e) { console.warn('[WYNN] Deadline fix failed:', e); }
+
+    try {
+      if (window._group.data.format === 'season' && !window._group.data.activeTournament) {
+        const tournaments = window._group.data.seasonTournaments || [];
+        const now = new Date();
+        const next = tournaments.find(t => !t.completed && new Date(t.date) >= new Date(now.getTime() - 4*24*60*60*1000));
+        if (next) {
+          await update(ref(db, `groups/${gid}`), { activeTournament: next });
+          window._group.data.activeTournament = next;
+        }
+      }
+    } catch(e) { console.warn('[WYNN] Auto-activate failed:', e); }
+
+    renderGroupBanner();
+
+    try {
+      await loadGroupPlayers();
+      updateFieldStatus();
+      renderLeaderboard();
+    } catch(e) { console.warn('[WYNN] loadGroupPlayers failed:', e); }
+
+    try { await loadMyPicks(gid); } catch(e) { console.warn('[WYNN] loadMyPicks failed:', e); }
+
+    renderLeaderboard();
+    renderMembers();
+    renderGolfLeaderboard();
+
+    if (window._autoRefreshTimer) clearInterval(window._autoRefreshTimer);
+    window._autoRefreshTimer = setInterval(async () => {
+      await loadGroupPlayers();
+      renderLeaderboard();
+      updateFieldStatus();
+      console.log('[WYNN] Auto-refreshed scores at', new Date().toLocaleTimeString());
+    }, 10 * 60 * 1000);
+
+    const fmt = window._group.data.format;
+    document.querySelectorAll('.gs-history-tab').forEach(t => t.classList.toggle('hidden', fmt === 'single'));
+    if (fmt === 'season') renderHistory();
+  };
+
+  window.leaveGroupScreen = () => {
+    if (window._autoRefreshTimer) {
+      clearInterval(window._autoRefreshTimer);
+      window._autoRefreshTimer = null;
+    }
+    document.getElementById('page-group').classList.remove('active');
+    navigateTo('home');
+  };
+
+  window.switchGroupTab = (tab) => {
+    ['leaderboard','picks','members','history'].forEach(t => {
+      document.getElementById(`gs-tab-${t}`).classList.toggle('hidden', t !== tab);
+    });
+    document.querySelectorAll('.group-tab').forEach((btn, i) => {
+      const tabs = ['leaderboard','picks','members','history'];
+      btn.classList.toggle('active', tabs[i] === tab);
+    });
+    if (tab === 'picks')       renderPicksTab();
+    if (tab === 'history')     renderHistory();
+    if (tab === 'leaderboard') renderGolfLeaderboard();
+  };
+
+  function renderGroupBanner() {
+    const g = window._group.data;
+    document.getElementById('gs-group-name').textContent = g.name;
+
+    let tName = '—';
+    if (g.format === 'single' && g.tournament?.name) {
+      tName = g.tournament.name;
+    } else if (g.format === 'major_slam') {
+      const idx = g.currentTournamentIndex || 0;
+      tName = g.majorTournaments?.[idx]?.name || 'The Masters';
+    } else if (g.format === 'season') {
+      tName = g.activeTournament?.name || 'No active tournament';
+    }
+    document.getElementById('gs-tournament-name').textContent = tName;
+
+    const now      = new Date();
+    let deadline   = getDeadline();
+    const tStartDate = g.tournament?.date || g.activeTournament?.date;
+    if (tStartDate && new Date(tStartDate) < now && deadline > now) {
+      deadline = new Date(now.getTime() - 1);
+    }
+    window._group.deadlinePassed = now > deadline;
+    const chip = document.getElementById('gs-deadline-chip');
+    const deadlineDateStr = window._group.data.deadlineTimestamp
+      ? new Date(window._group.data.deadlineTimestamp).toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' }) + ', 22:00 CET'
+      : 'Wed 22:00 CET';
+    chip.textContent = window._group.deadlinePassed
+      ? '🔒 Picks locked'
+      : `⏰ Deadline: ${deadlineDateStr}`;
+    chip.classList.toggle('expired', window._group.deadlinePassed);
+
+    const fmtMap = { single: 'Single Tournament', major_slam: 'Major Slam', season: 'Custom Season' };
+    document.getElementById('gs-format-badge').textContent = '🏆 ' + (fmtMap[g.format] || g.format);
+
+    if (g.isMoney && g.stake) {
+      document.getElementById('gs-format-badge').textContent += ` · 💰 ${g.stake}`;
+    }
+
+    const modeTexts = {
+      single:     '🌍 Pick 1 player from USA, 1 from Europe, 1 from Rest of World. Lowest combined score wins. Missed cut = score frozen ✂️',
+      major_slam: '🌍 Pick 3 players (USA · Europe · RoW) per Major. Each player can only be picked once per season across all 5 events. Lowest combined score wins.',
+      season:     '🌍 Pick 3 players (USA · Europe · RoW) per tournament. Each player can only be picked once per season — no repeats! Lowest combined score wins.',
+    };
+    const modeEl = document.getElementById('gs-mode-text');
+    if (modeEl) modeEl.textContent = modeTexts[g.format] || '';
+
+    // ── FIX: Show "End Tournament" button correctly for all formats ──
+    const uid      = auth.currentUser?.uid;
+    const isOwner  = uid === g.ownerId || window._state.isSuperadmin;
+
+    let hasActive;
+    if (g.format === 'single') {
+      // Single: active as long as tournament has NOT been ended (tournamentEnded flag)
+      hasActive = !g.tournamentEnded;
+    } else {
+      // Season / Major Slam: active if activeTournament exists and not completed
+      hasActive = !!(g.activeTournament && !g.activeTournament.completed);
+    }
+
+    const endSection = document.getElementById('gs-end-tournament-section');
+    if (endSection) endSection.classList.toggle('hidden', !isOwner || !hasActive);
+  }
+
+  window.getNextDeadline = function() {
+    const now = new Date();
+    const cetOffset = isCETSummerTime(now) ? 2 : 1;
+    const d = new Date(now);
+    d.setUTCHours(0, 0, 0, 0);
+    const day  = d.getUTCDay();
+    const daysUntilWed = (3 - day + 7) % 7;
+    d.setUTCDate(d.getUTCDate() + daysUntilWed);
+    d.setUTCHours(22 - cetOffset, 0, 0, 0);
+    if (d <= now) {
+      d.setUTCDate(d.getUTCDate() + 7);
+    }
+    return d;
+  }
+
+  window.calcDeadlineForTournament = function(tournamentDateStr) {
+    const tDate = tournamentDateStr ? new Date(tournamentDateStr + 'T12:00:00Z') : new Date();
+    const wed = new Date(tDate);
+    const day = wed.getUTCDay();
+    const daysBack = ((day - 3) + 7) % 7 || 7;
+    wed.setUTCDate(wed.getUTCDate() - daysBack);
+    const cetOffset = window.isCETSummerTime(wed) ? 2 : 1;
+    wed.setUTCHours(22 - cetOffset, 0, 0, 0);
+    return wed;
+  };
+
+  window.getDeadline = function() {
+    const g = window._group?.data;
+    if (g?.deadlineTimestamp) return new Date(g.deadlineTimestamp);
+    const tStart = g?.tournament?.date || g?.activeTournament?.date;
+    if (tStart && new Date(tStart + 'T00:00:00Z') < new Date()) return new Date(0);
+    return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  };
+
+  window.isCETSummerTime = function(date) {
+    const year = date.getUTCFullYear();
+    const lastSunMarch = new Date(Date.UTC(year, 2, 31));
+    lastSunMarch.setUTCDate(31 - lastSunMarch.getUTCDay());
+    lastSunMarch.setUTCHours(1, 0, 0, 0);
+    const lastSunOct = new Date(Date.UTC(year, 9, 31));
+    lastSunOct.setUTCDate(31 - lastSunOct.getUTCDay());
+    lastSunOct.setUTCHours(1, 0, 0, 0);
+    return date >= lastSunMarch && date < lastSunOct;
+  }
+
+  async function fetchWithProxy(url) {
+    const proxies = [
+      async (u) => {
+        const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`, { signal: AbortSignal.timeout(10000) });
+        if (!res.ok) throw new Error('allorigins failed');
+        const json = await res.json();
+        return JSON.parse(json.contents);
+      },
+      async (u) => {
+        const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`, { signal: AbortSignal.timeout(10000) });
+        if (!res.ok) throw new Error('codetabs failed');
+        const text = await res.text();
+        if (!text || text.startsWith('<')) throw new Error('codetabs returned HTML');
+        return JSON.parse(text);
+      },
+      async (u) => {
+        const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(u)}`, { signal: AbortSignal.timeout(10000) });
+        if (!res.ok) throw new Error('corsproxy failed');
+        const text = await res.text();
+        if (!text || text.startsWith('<')) throw new Error('corsproxy returned HTML');
+        return JSON.parse(text);
+      },
+      async (u) => {
+        const res = await fetch(`https://thingproxy.freeboard.io/fetch/${u}`, { signal: AbortSignal.timeout(10000) });
+        if (!res.ok) throw new Error('thingproxy failed');
+        const text = await res.text();
+        return JSON.parse(text);
+      },
+    ];
+    let lastErr;
+    for (const proxyFn of proxies) {
+      try {
+        const data = await proxyFn(url);
+        if (data) return data;
+      } catch(e) { lastErr = e; console.warn('[WYNN] Proxy failed:', e.message); continue; }
+    }
+    throw new Error('All proxies failed: ' + lastErr?.message);
+  }
+
+  function parseESPNPlayers(evt) {
+    const comps = evt.competitions?.[0]?.competitors || [];
+    const players = comps.map(c => {
+      const athlete = c.athlete || {};
+      const flag = athlete.flag || athlete.countryFlag || c.countryFlag || {};
+      const flagHref = flag.href || flag.src || '';
+      const flagCode = flagHref.match(/countries\/\d+\/([a-z]+)\.png/i)?.[1]?.toLowerCase() || '';
+      const country =
+        flag.alt ||
+        flag.description ||
+        flag.value ||
+        athlete.citizenship ||
+        athlete.displayCountry ||
+        athlete.country ||
+        flagCode ||
+        '';
+      return {
+        id:     String(athlete.id || c.id || ''),
+        name:   athlete.displayName || c.displayName || '',
+        country,
+        region: getRegion(country),
+        toPar:  c.statistics?.find(s => s.name==='toPar')?.displayValue
+               || c.statistics?.find(s => s.name==='scoreToPar')?.displayValue
+               || c.statistics?.find(s => s.displayValue && (s.displayValue.startsWith('-') || s.displayValue.startsWith('+') || s.displayValue === 'E'))?.displayValue
+               || (c.score && c.score !== '0' ? c.score : null)
+               || null,
+        status: c.status?.type?.name || c.status?.type?.shortDetail || null,
+        thru: c.statistics?.find(s => s.name === 'thru' || s.name === 'holesPlayed')?.displayValue
+           || c.status?.thru
+           || null,
+        _raw:   {
+          flag: athlete.flag,
+          statistics: c.statistics,
+          score: c.score,
+          status: c.status,
+        }
+      };
+    }).filter(p => p.name && p.id);
+
+    if (players.length > 0) {
+      console.log('[WYNN] Sample players with country data:');
+      players.slice(0,3).forEach(p => {
+        console.log(`  ${p.name} | toPar="${p.toPar}" | status="${p.status}" | thru="${p.thru}"`);
+        console.log(`    stats:`, p._raw?.statistics?.map(s => s.name + '=' + s.displayValue));
+      });
+      const counts = {usa:0,europe:0,row:0};
+      players.forEach(p => counts[p.region]++);
+      console.log('[WYNN] Region counts:', counts);
+    }
+    return players;
+  }
+
+  function updateFieldStatus() {
+    const count      = window._group.players?.length || 0;
+    const el         = document.getElementById('gs-field-count');
+    const btn        = document.getElementById('gs-load-field-btn');
+    const disclaimer = document.getElementById('gs-field-disclaimer');
+    if (!el) return;
+
+    if (count > 0) {
+      const espnName    = window._group.espnTournamentName || '';
+      const activeName  = window._group.data?.activeTournament?.name || window._group.data?.tournament?.name || '';
+
+      // Normalize for comparison: lowercase, strip punctuation
+      const norm = s => s.toLowerCase().replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ').trim();
+      const espnWords   = norm(espnName).split(' ').filter(w => w.length > 3);
+      const activeWords = norm(activeName).split(' ').filter(w => w.length > 3);
+      const overlap     = espnWords.filter(w => activeWords.includes(w));
+      const isMatch     = espnName && activeName && overlap.length >= 1;
+      const hasActive   = !!activeName;
+
+      el.textContent = `${count} Spieler geladen`;
+      el.style.color = 'var(--text-dark)';
+      if (btn) btn.textContent = '↻ Starterfeld aktualisieren';
+
+      if (disclaimer) {
+        if (!hasActive) {
+          disclaimer.innerHTML = `<span style="color:var(--text-light);">ℹ️ Kein aktives Turnier gesetzt.</span>`;
+          disclaimer.classList.remove('hidden');
+        } else if (!espnName) {
+          disclaimer.innerHTML = `<span style="color:var(--gold);">⚠️ Quelltournier unbekannt — bitte Feld neu laden.</span>`;
+          disclaimer.classList.remove('hidden');
+        } else if (isMatch) {
+          disclaimer.innerHTML = `<span style="color:var(--success);">✅ Feld passt: <strong>${espnName}</strong></span>`;
+          disclaimer.classList.remove('hidden');
+        } else {
+          disclaimer.innerHTML = `<span style="color:#C0392B;">⚠️ Feld stammt von: <strong>${espnName}</strong><br>Aktives Turnier: <strong>${activeName}</strong><br>ESPN hat das aktuelle Feld noch nicht — bitte Dienstag/Mittwoch nochmal aktualisieren.</span>`;
+          disclaimer.classList.remove('hidden');
+        }
+      }
+    } else {
+      el.textContent = 'Noch kein Starterfeld geladen';
+      el.style.color = 'var(--text-light)';
+      if (btn) btn.textContent = '↻ Starterfeld von ESPN laden';
+      if (disclaimer) disclaimer.classList.add('hidden');
+    }
+  }
+
+  window.loadPlayerFieldManual = async () => {
+    const btn = document.getElementById('gs-load-field-btn');
+    const el  = document.getElementById('gs-field-count');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Loading...'; }
+    if (el)  { el.textContent = 'Fetching from ESPN...'; el.style.color = 'var(--text-light)'; }
+    await loadGroupPlayers(true);
+    updateFieldStatus();
+    if (btn) { btn.disabled = false; }
+    if (window._group.players?.length > 0) {
+      showToast(`Player field loaded: ${window._group.players.length} players ✓`, 'success');
+    } else {
+      showToast('Could not load player field from ESPN. Try again later.', 'error');
+    }
+  };
+
+  async function loadGroupPlayers(showErrors = false) {
+    const ESPN_URLS = [
+      'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard',
+      'https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events?limit=1',
+    ];
+    for (const espnUrl of ESPN_URLS) {
+      try {
+        const data = await fetchWithProxy(espnUrl);
+        const evt  = data?.events?.[0];
+        if (evt && evt.competitions?.[0]?.competitors?.length > 0) {
+          const dateStr = evt.date ? new Date(evt.date).toLocaleDateString('en-GB',{month:'short',day:'numeric'}) : '—';
+          document.getElementById('gs-tournament-date').textContent     = '📅 ' + dateStr;
+          document.getElementById('gs-tournament-location').textContent = '📍 ' + (evt.competitions?.[0]?.venue?.fullName || '—');
+          // Store ESPN tournament name for mismatch detection
+          window._group.espnTournamentName = evt.name || evt.shortName || '';
+          window._group.players = parseESPNPlayers(evt);
+          window._group.scores  = {};
+          window._group.players.forEach(p => { window._group.scores[p.id] = { toPar: p.toPar, status: p.status, thru: p.thru }; });
+          await update(ref(db, `groups/${window._group.id}/tournamentScores`), window._group.scores);
+          const nowTs = Date.now();
+          await update(ref(db, `groups/${window._group.id}`), { scoresLastUpdated: nowTs });
+          window._group.data.scoresLastUpdated = nowTs;
+          const tsEl = document.getElementById('gs-last-updated');
+          if (tsEl) tsEl.textContent = '🔄 Scores updated: ' + new Date(nowTs).toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' }) + ' Uhr';
+          localStorage.setItem('wynn_players_cache_' + window._group.id, JSON.stringify(window._group.players));
+          if (evt.id) {
+            await update(ref(db, `groups/${window._group.id}`), { espnEventId: String(evt.id) });
+            window._group.data.espnEventId = String(evt.id);
+          }
+          updateFieldStatus();
+          return;
+        }
+      } catch(e) { continue; }
+    }
+
+    try {
+      const scoreSnap = await get(ref(db, `groups/${window._group.id}/tournamentScores`));
+      if (scoreSnap.exists()) {
+        window._group.scores = scoreSnap.val();
+        const cached = localStorage.getItem('wynn_players_cache_' + window._group.id);
+        if (cached) {
+          window._group.players = JSON.parse(cached);
+          updateFieldStatus();
+          return;
+        }
+      }
+    } catch(e) {}
+
+    const cached = localStorage.getItem('wynn_players_cache_' + window._group.id)
+                || localStorage.getItem('wynn_players_cache');
+    if (cached) {
+      window._group.players = JSON.parse(cached);
+      updateFieldStatus();
+    } else {
+      window._group.players = [];
+      updateFieldStatus();
+    }
+  }
+
+  async function loadMyPicks(gid) {
+    const uid  = auth.currentUser.uid;
+    const snap = await get(ref(db, `groups/${gid}/picks/${uid}`));
+    if (snap.exists()) {
+      const p = snap.val();
+      window._group.myPicks = {
+        usa:    p.usa    || null,
+        europe: p.europe || null,
+        row:    p.row    || null,
+      };
+    }
+    const fmt = window._group.data.format;
+    if (fmt === 'season' || fmt === 'major_slam') {
+      const histSnap = await get(ref(db, `groups/${gid}/history`));
+      const used = new Set();
+      if (histSnap.exists()) {
+        Object.values(histSnap.val()).forEach(tournament => {
+          const myOldPicks = tournament.picks?.[uid];
+          if (myOldPicks) {
+            ['usa','europe','row'].forEach(r => {
+              if (myOldPicks[r]?.id) used.add(myOldPicks[r].id);
+            });
+          }
+        });
+      }
+      window._group.usedPicksThisSeason = [...used];
+    } else {
+      window._group.usedPicksThisSeason = [];
+    }
+  }
+
+  function renderPicksTab() {
+    const locked = window._group.deadlinePassed;
+    const bar    = document.getElementById('gs-picks-status-bar');
+    bar.className = 'picks-status-bar ' + (locked ? 'closed' : 'open');
+    document.getElementById('gs-picks-status-text').textContent = locked ? '🔒 Picks are locked' : '✏️ Picks open';
+    document.getElementById('gs-picks-status-sub').textContent  = locked ? 'Deadline has passed' : 'Deadline: Wednesday 22:00 CET';
+
+    ['usa','europe','row'].forEach(region => {
+      const slot = document.getElementById(`slot-${region}`);
+      slot.classList.toggle('locked', locked);
+      slot.classList.toggle('filled', !!window._group.myPicks[region]);
+      renderSelectedPick(region);
+    });
+
+    document.getElementById('gs-save-picks-btn').classList.toggle('hidden', locked);
+  }
+
+  function renderSelectedPick(region) {
+    const pick = window._group.myPicks[region];
+    const display = document.getElementById(`selected-${region}`);
+    const searchEl = document.getElementById(`search-${region}`);
+    if (pick) {
+      display.classList.remove('hidden');
+      document.getElementById(`selected-${region}-name`).textContent    = pick.name;
+      document.getElementById(`selected-${region}-country`).textContent = pick.country;
+      searchEl.value = '';
+      searchEl.placeholder = 'Change pick...';
+    } else {
+      display.classList.add('hidden');
+      searchEl.placeholder = region === 'usa' ? 'Search USA players...' : region === 'europe' ? 'Search European players...' : 'Search Rest of World players...';
+    }
+  }
+
+  window.filterPlayers = (region) => {
+    const q = document.getElementById(`search-${region}`).value.toLowerCase().trim();
+    showDropdown(region, q);
+  };
+
+  window.showDropdown = (region, q = '') => {
+    const dropdown = document.getElementById(`dropdown-${region}`);
+    const allPlayers = window._group.players || [];
+
+    if (!allPlayers.length) {
+      dropdown.innerHTML = `<div style="padding:12px 14px;font-size:13px;color:var(--text-light);">No players loaded yet — use the button above ↑</div>`;
+      dropdown.classList.remove('hidden');
+      return;
+    }
+
+    const players = allPlayers.filter(p => {
+      if (p.region !== region) return false;
+      if (q && !p.name.toLowerCase().includes(q)) return false;
+      return true;
+    });
+
+    if (!players.length && q) {
+      dropdown.innerHTML = `<div style="padding:12px 14px;font-size:13px;color:var(--text-light);">No ${region === 'usa' ? 'USA' : region === 'europe' ? 'European' : 'Rest of World'} players matching "${q}"</div>`;
+      dropdown.classList.remove('hidden');
+      return;
+    }
+
+    if (!players.length) {
+      const counts = {usa:0, europe:0, row:0};
+      allPlayers.forEach(p => counts[p.region] = (counts[p.region]||0)+1);
+      dropdown.innerHTML = `<div style="padding:12px 14px;font-size:13px;color:var(--text-light);">No ${region} players found. (USA: ${counts.usa}, EUR: ${counts.europe}, RoW: ${counts.row})</div>`;
+      dropdown.classList.remove('hidden');
+      return;
+    }
+
+    dropdown.innerHTML = players.slice(0, 50).map(p => {
+      const isUsed = window._group.usedPicksThisSeason.includes(p.id);
+      const isMine = ['usa','europe','row'].some(r => window._group.myPicks[r]?.id === p.id && r !== region);
+      const disabled = isUsed || isMine;
+      return `<div class="pick-dropdown-item${disabled?' used-pick':''}" onclick="selectPick('${region}','${p.id}','${escHtml(p.name)}','${escHtml(p.country)}')">
+        <span class="player-name">${escHtml(p.name)}</span>
+        <span class="player-country">${escHtml(p.country)}${isUsed?' · used':''}</span>
+      </div>`;
+    }).join('');
+    dropdown.classList.remove('hidden');
+  };
+
+  window.selectPick = (region, id, name, country) => {
+    window._group.myPicks[region] = { id, name, country };
+    document.getElementById(`dropdown-${region}`).classList.add('hidden');
+    renderSelectedPick(region);
+    document.getElementById(`slot-${region}`).classList.add('filled');
+  };
+
+  window.clearPick = (region) => {
+    window._group.myPicks[region] = null;
+    document.getElementById(`slot-${region}`).classList.remove('filled');
+    renderSelectedPick(region);
+  };
+
+  document.addEventListener('click', (e) => {
+    ['usa','europe','row'].forEach(r => {
+      const wrap = document.getElementById(`slot-${r}`);
+      if (wrap && !wrap.contains(e.target)) {
+        const dd = document.getElementById(`dropdown-${r}`);
+        if (dd) dd.classList.add('hidden');
+      }
+    });
+  });
+
+  window.savePicks = async () => {
+    const picks = window._group.myPicks;
+    if (!picks.usa || !picks.europe || !picks.row) {
+      showToast('Please select a player for all 3 regions.', 'error');
+      return;
+    }
+    const uid = auth.currentUser.uid;
+    const gid = window._group.id;
+    try {
+      await set(ref(db, `groups/${gid}/picks/${uid}`), {
+        ...picks,
+        savedAt: Date.now(),
+        submitted: true,
+      });
+      showToast('Picks saved! ✓', 'success');
+      renderLeaderboard();
+    } catch(e) {
+      showToast('Error saving picks.', 'error');
+    }
+  };
+
+  async function renderLeaderboard() {
+    try {
+    const gid     = window._group.id;
+    const uid     = auth.currentUser?.uid || '';
+    const list    = document.getElementById('gs-leaderboard-list');
+    if (!gid || !list) return;
+    let snap;
+    try { snap = await get(ref(db, `groups/${gid}/picks`)); } catch(e) { snap = null; }
+    const members = window._group.data?.members || {};
+    const now = new Date();
+    const dl  = window._group.data?.deadlineTimestamp
+      ? new Date(window._group.data.deadlineTimestamp)
+      : null;
+    const tStart = window._group.data?.tournament?.date
+      || window._group.data?.activeTournament?.date;
+    const locked = dl ? now > dl : (tStart ? new Date(tStart) < now : false);
+    window._group.deadlinePassed = locked;
+
+    const picksData = snap.exists() ? snap.val() : {};
+
+    if (!window._group.scores || Object.keys(window._group.scores).length === 0) {
+      const scoreSnap = await get(ref(db, `groups/${gid}/tournamentScores`));
+      if (scoreSnap.exists()) window._group.scores = scoreSnap.val();
+    }
+
+    const entries = await Promise.all(Object.keys(members).map(async memberId => {
+      const userSnap = await get(ref(db, `users/${memberId}`));
+      const userData = userSnap.exists() ? userSnap.val() : { name: 'Unknown' };
+      const picks    = picksData[memberId];
+      const trophies = userData.trophies?.[gid] || [];
+
+      let totalScore = null;
+      let pickRows   = [];
+
+      if (picks && locked) {
+        let total = 0;
+        let hasScore = false;
+        ['usa','europe','row'].forEach(region => {
+          const pick = picks[region];
+          if (!pick) return;
+          const scoreData = window._group.scores[pick.id];
+          const toPar     = scoreData?.toPar ?? null;
+          const statusRaw = (scoreData?.status || '').toLowerCase();
+          const isCut     = statusRaw === 'cut' || statusRaw === 'wd' || statusRaw === 'mc' ||
+                            statusRaw.includes('cut') || statusRaw.includes('withdraw');
+          const numScore  = toPar ? parseScore(toPar) : null;
+          if (numScore !== null) { total += numScore; hasScore = true; }
+          const tagClass  = region === 'usa' ? 'tag-usa' : region === 'europe' ? 'tag-europe' : 'tag-row';
+          const tagLabel  = region === 'usa' ? 'USA' : region === 'europe' ? 'EUR' : 'RoW';
+          const thru = scoreData?.thru || null;
+          pickRows.push({ name: pick.name, country: pick.country, region, tagClass, tagLabel, toPar, isCut, thru });
+        });
+        if (hasScore) totalScore = total;
+      }
+
+      return { memberId, name: userData.name, picks, submitted: picks?.submitted, totalScore, pickRows, trophies, isMe: memberId === uid };
+    }));
+
+    entries.sort((a, b) => {
+      if (a.totalScore !== null && b.totalScore !== null) return a.totalScore - b.totalScore;
+      if (a.totalScore !== null) return -1;
+      if (b.totalScore !== null) return  1;
+      if (a.submitted && !b.submitted) return -1;
+      if (!a.submitted && b.submitted) return  1;
+      return a.name.localeCompare(b.name);
+    });
+
+    let rank = 1;
+    entries.forEach((e, i) => {
+      if (i > 0 && entries[i-1].totalScore !== null && e.totalScore === entries[i-1].totalScore) {
+        e.rank = entries[i-1].rank;
+      } else { e.rank = rank; }
+      rank++;
+    });
+
+    const scoredE    = entries.filter(e => e.totalScore !== null);
+    const bestScore  = scoredE.length ? scoredE[0].totalScore : null;
+    const worstScore = scoredE.length ? scoredE[scoredE.length-1].totalScore : null;
+    const hasWinner  = scoredE.length >= 2 && bestScore !== worstScore;
+
+    list.innerHTML = entries.map(e => {
+      const showCrown   = e.totalScore !== null && e.totalScore === bestScore;
+      const showPoop    = e.totalScore !== null && e.totalScore === worstScore && hasWinner;
+      const crownBadges = showCrown ? '👑' : '';
+      const poopBadges  = showPoop  ? '💩' : '';
+
+      const pickDetail = (locked && e.pickRows.length) ? `
+        <div class="lb-picks-detail">
+          ${e.pickRows.map(p => {
+            const thruStr = p.isCut ? '' :
+              (p.thru === 'F' || Number(p.thru) >= 18) ? 'F' :
+              (p.thru && p.thru !== '0') ? `/${p.thru}` : '';
+            return `<div class="lb-pick-row">
+              <div class="lb-pick-left">
+                <span class="pick-player${p.isCut?' cut':''}">${escHtml(p.name)}${p.isCut?' ✂️':''}</span>
+                <span class="pick-country-small">${escHtml(p.country)} · <span class="pick-region-tag ${p.tagClass}">${p.tagLabel}</span></span>
+              </div>
+              <div class="lb-pick-right">
+                <span class="pick-score-val${p.isCut?' cut':''}">${p.toPar ? formatScore(p.toPar) : '—'}</span>
+                ${thruStr ? `<span class="pick-thru">${thruStr}</span>` : ''}
+              </div>
+            </div>`;
+          }).join('')}
+        </div>` : (!locked && e.submitted ? `<div style="font-size:12px;color:var(--text-light);margin-top:8px;">Picks werden nach Deadline angezeigt</div>` : '');
+
+      const scoreDisplay = e.totalScore !== null
+        ? `<div class="lb-score">${formatScore(String(e.totalScore))}</div>`
+        : `<div class="lb-score no-score">${e.submitted ? '–' : 'awaiting'}</div>`;
+
+      return `
+        <div class="leaderboard-item${e.isMe?' me':''}">
+          <div class="lb-top-row">
+            <div class="lb-rank">${e.rank || '—'}</div>
+            <div class="lb-avatar">${e.name.charAt(0).toUpperCase()}</div>
+            <div class="lb-info">
+              <div class="lb-name">
+                ${escHtml(e.name)}
+                ${crownBadges}${poopBadges}
+                ${e.isMe ? '<span style="font-size:11px;color:var(--text-light);font-weight:400">(you)</span>' : ''}
+              </div>
+              <div class="lb-pick-status ${e.submitted?'submitted':'awaiting'}">
+                ${e.submitted ? '✓ Picks submitted' : '⏳ Picks awaiting'}
+              </div>
+            </div>
+            ${scoreDisplay}
+          </div>
+          ${pickDetail}
+        </div>`;
+    }).join('');
+    } catch(err) {
+      console.error('[WYNN] renderLeaderboard error:', err);
+      const list = document.getElementById('gs-leaderboard-list');
+      if (list) list.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>Could not load leaderboard.<br><small style="color:var(--text-light)">${err.message}</small></p></div>`;
+    }
+  }
+
+  async function renderMembers() {
+    const gid     = window._group.id;
+    const uid     = auth.currentUser.uid;
+    const g       = window._group.data;
+    const members = g.members || {};
+    const list    = document.getElementById('gs-members-list');
+
+    const entries = await Promise.all(Object.keys(members).map(async memberId => {
+      const snap = await get(ref(db, `users/${memberId}`));
+      return { uid: memberId, ...(snap.exists() ? snap.val() : { name: 'Unknown' }) };
+    }));
+
+    list.innerHTML = entries.map(m => {
+      const isOwner = m.uid === g.ownerId;
+      const isMe    = m.uid === uid;
+      const canKick = (uid === g.ownerId || window._state.isSuperadmin) && !isOwner && !isMe;
+      return `<div class="member-item">
+        <div class="member-avatar">${m.name.charAt(0).toUpperCase()}</div>
+        <div class="member-info">
+          <div class="member-name">${escHtml(m.name)} ${isOwner?'👑':''} ${isMe?'<span style="font-size:11px;color:var(--text-light)">(you)</span>':''}</div>
+          <div class="member-role">${isOwner ? 'Group owner' : 'Member'}</div>
+        </div>
+        ${canKick ? `<button class="btn btn-danger btn-sm" onclick="kickMember('${m.uid}','${escHtml(m.name)}')">Kick</button>` : ''}
+      </div>`;
+    }).join('');
+
+    const invSection = document.getElementById('gs-invite-section');
+    const showInvite = g.visibility === 'private' && uid === g.ownerId;
+    invSection.classList.toggle('hidden', !showInvite);
+    if (showInvite) document.getElementById('gs-invite-code').textContent = g.inviteCode || '—';
+
+    const joinSection = document.getElementById('gs-join-section');
+    joinSection.classList.toggle('hidden', uid === g.ownerId);
+  }
+
+  window.kickMember = async (memberId, memberName) => {
+    if (!confirm(`Remove ${memberName} from this group?`)) return;
+    const gid = window._group.id;
+    await remove(ref(db, `groups/${gid}/members/${memberId}`));
+    await update(ref(db, `groups/${gid}`), { memberCount: Object.keys(window._group.data.members).length - 1 });
+    showToast(`${memberName} removed.`, 'info');
+    renderMembers();
+  };
+
+  window.leaveGroup = async () => {
+    if (!confirm('Leave this group?')) return;
+    const gid = window._group.id;
+    const uid = auth.currentUser.uid;
+    await remove(ref(db, `groups/${gid}/members/${uid}`));
+    showToast('You left the group.', 'info');
+    leaveGroupScreen();
+  };
+
+  window.copyInviteCode = () => {
+    const code = window._group.data?.inviteCode;
+    if (!code) return;
+    navigator.clipboard?.writeText(code).then(() => showToast('Invite code copied!', 'success'));
+  };
+
+  window.refreshGroupScores = async () => {
+    showToast('Refreshing scores...', 'info');
+    await loadGroupPlayers();
+    renderLeaderboard();
+    showToast('Scores updated!', 'success');
+  };
+
+  function parseScore(val) {
+    if (!val) return null;
+    const v = String(val).trim();
+    if (v === 'E' || v === 'e' || v === 'EVEN') return 0;
+    const n = parseInt(v);
+    return isNaN(n) ? null : n;
+  }
+
+  function formatScore(val) {
+    const n = parseScore(val);
+    if (n === null) return '<span class="score-even">—</span>';
+    if (n === 0)    return '<span class="score-even">E</span>';
+    if (n > 0)      return `<span class="score-positive">+${n}</span>`;
+    return `<span class="score-negative">${n}</span>`;
+  }
+
+  /* ---- JOIN GROUP BY INVITE CODE ---- */
+  window.joinGroupByCode = async (code) => {
+    const snap = await get(ref(db, 'groups'));
+    if (!snap.exists()) { showToast('Group not found.', 'error'); return; }
+    let found = null;
+    Object.entries(snap.val()).forEach(([gid, g]) => {
+      if (g.inviteCode === code.toUpperCase()) found = { gid, g };
+    });
+    if (!found) { showToast('Invalid invite code.', 'error'); return; }
+    const { gid, g } = found;
+    const uid = auth.currentUser.uid;
+    if (g.members?.[uid]) { showToast('You are already in this group!', 'info'); return; }
+    const count = Object.keys(g.members||{}).length;
+    if (g.visibility === 'public' && count >= 20) { showToast('This group is full (max 20).', 'error'); return; }
+    await update(ref(db, `groups/${gid}/members`), { [uid]: true });
+    await update(ref(db, `groups/${gid}`), { memberCount: count + 1 });
+    showToast(`Joined "${g.name}"! 🎉`, 'success');
+    loadGroups();
+  };
+
+  /* ── SEASON TOURNAMENT MANAGEMENT ─────────────────────────── */
+
+  window.openAddTournamentModal = async () => {
+    openModal('add-tournament-modal');
+    await loadTournamentPicker('add-tournament-select');
+    const g = window._group.data;
+    const added = (g.seasonTournaments || []).map(t => t.id);
+    const sel   = document.getElementById('add-tournament-select');
+    Array.from(sel.options).forEach(opt => {
+      if (added.includes(opt.value)) opt.disabled = true;
+    });
+  };
+
+  window.confirmAddTournament = async () => {
+    const sel  = document.getElementById('add-tournament-select');
+    const id   = sel.value;
+    const name = sel.options[sel.selectedIndex]?.dataset?.name || sel.options[sel.selectedIndex]?.text?.split(' · ')[0];
+    const date = sel.options[sel.selectedIndex]?.dataset?.date || '';
+    if (!id || !name) return showToast('Please select a tournament.', 'error');
+    const gid = window._group.id;
+    const g   = window._group.data;
+    const existing = g.seasonTournaments || [];
+    if (existing.find(t => t.id === id)) return showToast('Tournament already added.', 'error');
+    const updated = [...existing, { id, name, date, addedAt: Date.now() }];
+    await update(ref(db, `groups/${gid}`), { seasonTournaments: updated });
+    window._group.data.seasonTournaments = updated;
+    closeModal('add-tournament-modal');
+    showToast(`"${name}" added to season! 🎉`, 'success');
+    renderHistory();
+  };
+
+  window.setActiveTournament = async (id, name, date) => {
+    const gid = window._group.id;
+    const g   = window._group.data;
+    if (g.activeTournament?.id && !g.activeTournament?.completed) {
+      showToast('Deaktiviere zuerst das aktive Turnier (↩ Deaktivieren).', 'error');
+      return;
+    }
+    const tournament    = { id, name, date, completed: false };
+    const newDeadlineTs = date
+      ? calcDeadlineForTournament(date).getTime()
+      : Date.now() + 7 * 24 * 60 * 60 * 1000;
+    await update(ref(db, `groups/${gid}`), {
+      activeTournament: tournament, picks: null, deadlineTimestamp: newDeadlineTs,
+    });
+    window._group.data.activeTournament  = tournament;
+    window._group.data.deadlineTimestamp = newDeadlineTs;
+    window._group.deadlinePassed = false;
+    showToast(`"${name}" ist jetzt aktiv — Picks offen! 🎉`, 'success');
+    renderGroupBanner();
+    renderHistory();
+    renderLeaderboard();
+    updateFieldStatus();
+  };
+
+  window.deactivateTournament = async () => {
+    const gid = window._group.id;
+    const g   = window._group.data;
+    const t   = g.activeTournament;
+    if (!t) { showToast('Kein aktives Turnier.', 'error'); return; }
+    if (!confirm(`"${t.name}" deaktivieren?\nKeine Ergebnisse werden gespeichert. Picks werden gelöscht.`)) return;
+    await update(ref(db, `groups/${gid}`), { activeTournament: null, picks: null });
+    window._group.data.activeTournament = null;
+    window._group.deadlinePassed = false;
+    showToast('Turnier deaktiviert.', 'info');
+    renderGroupBanner();
+    renderHistory();
+    renderLeaderboard();
+    switchGroupTab('history');
+  };
+
+  window.resetCompletedTournament = async (tid) => {
+    const gid = window._group.id;
+    const g   = window._group.data;
+    if (!confirm('Turnier zurücksetzen?\nGespeicherte Ergebnisse werden gelöscht. Das Turnier wird wieder als "anstehend" markiert.')) return;
+    await remove(ref(db, `groups/${gid}/history/${tid}`));
+    if (g.seasonTournaments) {
+      const updated = g.seasonTournaments.map(t => t.id === tid ? { ...t, completed: false } : t);
+      await update(ref(db, `groups/${gid}`), { seasonTournaments: updated });
+      window._group.data.seasonTournaments = updated;
+    }
+    if (g.activeTournament?.id === tid) {
+      await update(ref(db, `groups/${gid}`), { activeTournament: null });
+      window._group.data.activeTournament = null;
+    }
+    const fresh = await get(ref(db, `groups/${gid}`));
+    if (fresh.exists()) window._group.data = fresh.val();
+    showToast('Turnier zurückgesetzt ✓', 'success');
+    renderGroupBanner();
+    renderHistory();
+    renderLeaderboard();
+  };
+
+  /* ── FIX: endTournament handles all formats correctly ───── */
+  window.endTournament = async () => {
+    const gid = window._group.id;
+    const g   = window._group.data;
+
+    // ── Determine the active tournament object depending on format ──
+    let activeTournament;
+    if (g.format === 'single') {
+      // Single format stores the tournament in g.tournament, not g.activeTournament
+      if (g.tournamentEnded) { showToast('Tournament already ended.', 'error'); return; }
+      activeTournament = g.tournament;
+    } else {
+      activeTournament = g.activeTournament;
+    }
+
+    if (!activeTournament) { showToast('No active tournament found.', 'error'); return; }
+    if (!confirm(`End "${activeTournament.name}" and save final results?`)) return;
+
+    showToast('Saving final results...', 'info');
+
+    // Load final scores
+    const espnId = g.espnEventId;
+    if (espnId) {
+      try {
+        const url  = `https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard?event=${espnId}`;
+        const data = await fetchWithProxy(url);
+        const evt  = data?.events?.[0];
+        if (evt && evt.competitions?.[0]?.competitors?.length > 0) {
+          const players = parseESPNPlayers(evt);
+          window._group.scores = {};
+          players.forEach(p => { window._group.scores[p.id] = { toPar: p.toPar, status: p.status }; });
+          await update(ref(db, `groups/${window._group.id}/tournamentScores`), window._group.scores);
+          showToast('Final scores loaded from ESPN ✓', 'success');
+        } else {
+          const scoreSnap = await get(ref(db, `groups/${window._group.id}/tournamentScores`));
+          if (scoreSnap.exists()) window._group.scores = scoreSnap.val();
+          showToast('Using cached scores (ESPN event data not available)', 'info');
+        }
+      } catch(e) {
+        const scoreSnap = await get(ref(db, `groups/${window._group.id}/tournamentScores`));
+        if (scoreSnap.exists()) window._group.scores = scoreSnap.val();
+        showToast('Using cached scores', 'info');
+      }
+    } else {
+      await loadGroupPlayers();
+    }
+
+    // Get all picks + calculate final standings
+    const picksSnap = await get(ref(db, `groups/${gid}/picks`));
+    const picksData = picksSnap.exists() ? picksSnap.val() : {};
+    const members   = g.members || {};
+
+    const results = await Promise.all(Object.keys(members).map(async uid => {
+      const uSnap = await get(ref(db, `users/${uid}`));
+      const uData = uSnap.exists() ? uSnap.val() : { name: 'Unknown' };
+      const picks = picksData[uid];
+      let total = null;
+      if (picks) {
+        let sum = 0, hasScore = false;
+        ['usa','europe','row'].forEach(r => {
+          const pick = picks[r];
+          if (!pick) return;
+          const sd  = window._group.scores[pick.id];
+          const val = sd?.toPar ? parseInt(sd.toPar) : null;
+          if (val !== null && !isNaN(val)) { sum += val; hasScore = true; }
+        });
+        if (hasScore) total = sum;
+      }
+      return { uid, name: uData.name, total };
+    }));
+
+    const scored  = results.filter(r => r.total !== null).sort((a,b) => a.total - b.total);
+    const winner  = scored[0] || null;
+    const loser   = scored[scored.length - 1] || null;
+    const winners = scored.filter(r => r.total === winner?.total);
+    const losers  = scored.filter(r => r.total === loser?.total);
+
+    // Award trophies
+    for (const w of winners) {
+      const uSnap = await get(ref(db, `users/${w.uid}`));
+      const uData = uSnap.exists() ? uSnap.val() : {};
+      const trophies = uData.trophies?.[gid] || [];
+      if (scored.length > 1 || winners.length > 0) {
+        trophies.push('crown');
+        await update(ref(db, `users/${w.uid}/trophies`), { [gid]: trophies });
+      }
+    }
+    if (scored.length > 1 && loser?.total !== winner?.total) {
+      for (const l of losers) {
+        const uSnap = await get(ref(db, `users/${l.uid}`));
+        const uData = uSnap.exists() ? uSnap.val() : {};
+        const trophies = uData.trophies?.[gid] || [];
+        trophies.push('poop');
+        await update(ref(db, `users/${l.uid}/trophies`), { [gid]: trophies });
+      }
+    }
+
+    // Save tournament to history
+    const tid = activeTournament.id;
+    await set(ref(db, `groups/${gid}/history/${tid}`), {
+      name:        activeTournament.name,
+      date:        activeTournament.date || '',
+      completedAt: Date.now(),
+      winner:      winner?.name || '—',
+      winnerId:    winner?.uid  || null,
+      loser:       loser?.name  || '—',
+      loserId:     loser?.uid   || null,
+      results:     results.map(r => ({ uid: r.uid, name: r.name, total: r.total })),
+      picks:       picksData,
+      scores:      window._group.scores,
+    });
+
+    // ── Format-specific: mark as ended ──
+    if (g.format === 'single') {
+      // Mark this single group as tournament-ended
+      await update(ref(db, `groups/${gid}`), {
+        tournamentEnded: true,
+        picks: null,
+      });
+      window._group.data.tournamentEnded = true;
+    } else {
+      // Season / Major Slam: mark activeTournament as completed
+      const completedT = { ...activeTournament, completed: true };
+      await update(ref(db, `groups/${gid}`), {
+        activeTournament: completedT,
+        picks: null,
+      });
+      window._group.data.activeTournament = completedT;
+
+      // For major slam: advance to next tournament index
+      if (g.format === 'major_slam') {
+        const nextIdx = (g.currentTournamentIndex || 0) + 1;
+        await update(ref(db, `groups/${gid}`), { currentTournamentIndex: nextIdx });
+        window._group.data.currentTournamentIndex = nextIdx;
+      }
+
+      // For season: mark in seasonTournaments list too
+      if (g.format === 'season' && g.seasonTournaments) {
+        const updated = g.seasonTournaments.map(t =>
+          t.id === tid ? { ...t, completed: true } : t
+        );
+        await update(ref(db, `groups/${gid}`), { seasonTournaments: updated });
+        window._group.data.seasonTournaments = updated;
+      }
+    }
+
+    // Save to user stats
+    for (const r of results) {
+      const isWinner = winners.some(w => w.uid === r.uid);
+      const isLoser  = losers.some(l => l.uid === r.uid) && scored.length > 1 && loser?.total !== winner?.total;
+      const rank     = scored.findIndex(s => s.uid === r.uid) + 1;
+      const total    = scored.length;
+      const statEntry = {
+        gid, groupName: g.name,
+        tournament: activeTournament.name,
+        rank, total, crown: isWinner, poop: isLoser, date: Date.now()
+      };
+      await update(ref(db, `users/${r.uid}/stats`), { [gid + '_' + tid]: statEntry });
+    }
+
+    showToast(`Turnier beendet! 🏆 Sieger: ${winner?.name || '—'}`, 'success');
+    const fresh = await get(ref(db, `groups/${gid}`));
+    if (fresh.exists()) window._group.data = fresh.val();
+    renderGroupBanner();
+    renderHistory();
+    renderLeaderboard();
+    if (g.format === 'season' || g.format === 'major_slam') switchGroupTab('history');
+  };
+
+  async function renderHistory() {
+    const gid  = window._group.id;
+    const g    = window._group.data;
+    const uid  = auth.currentUser.uid;
+    const list = document.getElementById('gs-history-list');
+    const isOwner = uid === g.ownerId || window._state.isSuperadmin;
+
+    const addSection = document.getElementById('gs-add-tournament-section');
+    if (addSection) addSection.classList.toggle('hidden', g.format !== 'season' || !isOwner);
+
+    if (g.format === 'season') {
+      const tournaments = g.seasonTournaments || [];
+      if (!tournaments.length) {
+        list.innerHTML = emptyState('📅', isOwner
+          ? 'No tournaments added yet. Use the button above to add one!'
+          : 'No tournaments added to this season yet.');
+        return;
+      }
+      const histSnap = await get(ref(db, `groups/${gid}/history`));
+      const history  = histSnap.exists() ? histSnap.val() : {};
+      const now      = new Date();
+      const activeId = g.activeTournament?.id;
+      list.innerHTML = tournaments.map(t => {
+        const isPast     = t.date && new Date(t.date) < now;
+        const result     = history[t.id];
+        const winnerName = result?.winner || '—';
+        const dateStr    = t.date ? new Date(t.date).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '';
+        const isActive   = t.id === activeId;
+        return `<div class="past-tournament-item" style="${isActive ? 'border:2px solid var(--green);' : ''}">
+          <div class="past-t-header">
+            <div class="past-t-name">${escHtml(t.name)} ${isActive ? '🟢' : ''}</div>
+            <div class="past-t-date">${dateStr}</div>
+          </div>
+          <div class="past-t-winner" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <span>${isActive ? '🟢 Active — picks open' : t.completed ? '✅ ' + (result ? '🏆 ' + escHtml(winnerName) : 'Completed') : isPast ? '⏳ Results pending' : '📅 Upcoming'}</span>
+            ${isOwner && !isActive && !t.completed ? `<button class="btn btn-sm btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="setActiveTournament('${t.id}','${escHtml(t.name)}','${t.date||''}')">Set Active</button>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+      return;
+    }
+
+    if (g.format === 'major_slam') {
+      const majors = g.majorTournaments || [
+        { id: 'masters',   name: 'The Masters' },
+        { id: 'pga-champ', name: 'PGA Championship' },
+        { id: 'us-open',   name: 'U.S. Open' },
+        { id: 'the-open',  name: 'The Open Championship' },
+        { id: 'fedex',     name: 'FedEx Cup Playoffs' },
+      ];
+      const histSnap = await get(ref(db, `groups/${gid}/history`));
+      const history  = histSnap.exists() ? histSnap.val() : {};
+      const currentIdx = g.currentTournamentIndex || 0;
+      list.innerHTML = majors.map((t, i) => {
+        const result     = history[t.id];
+        const isActive   = i === currentIdx;
+        const isPast     = i < currentIdx;
+        const winnerName = result?.winner || '—';
+        return `<div class="past-tournament-item" style="${isActive ? 'border:2px solid var(--green);' : ''}">
+          <div class="past-t-header">
+            <div class="past-t-name">${i+1}. ${escHtml(t.name)}</div>
+            <div class="past-t-date">${isActive ? '🟢 Active' : isPast ? '✅ Done' : '📅 Upcoming'}</div>
+          </div>
+          <div class="past-t-winner">
+            ${isPast && result ? '🏆 ' + escHtml(winnerName) : isPast ? '⏳ Results pending' : ''}
+          </div>
+        </div>`;
+      }).join('');
+      return;
+    }
+
+    // Single format — show history if any
+    if (g.format === 'single') {
+      const histSnap = await get(ref(db, `groups/${gid}/history`));
+      if (histSnap.exists()) {
+        const history = histSnap.val();
+        list.innerHTML = Object.entries(history).map(([tid, t]) => `
+          <div class="past-tournament-item">
+            <div class="past-t-header">
+              <div class="past-t-name">${escHtml(t.name)}</div>
+              <div class="past-t-date">${t.date ? new Date(t.date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : ''}</div>
+            </div>
+            <div class="past-t-winner">✅ 🏆 ${escHtml(t.winner || '—')}</div>
+          </div>`).join('');
+      } else {
+        list.innerHTML = emptyState('📋', 'No tournament history yet.');
+      }
+      return;
+    }
+
+    list.innerHTML = emptyState('📋', 'No history available for this format.');
+  }
+
+  /* ── GOLF TOURNAMENT LEADERBOARD ───────────────────────── */
+  window.renderGolfLeaderboard = async function(forceRefresh = false) {
+    const section = document.getElementById('gs-golf-leaderboard-section');
+    const list    = document.getElementById('gs-golf-leaderboard-list');
+    if (!section || !list) return;
+
+    let players = window._group.players || [];
+    if (forceRefresh || !players.length) {
+      await loadGroupPlayers(false);
+      players = window._group.players || [];
+    }
+
+    if (!players.length) { section.classList.add('hidden'); return; }
+
+    // Only show if ESPN data matches the active tournament
+    const espnName   = window._group.espnTournamentName || '';
+    const activeName = window._group.data?.activeTournament?.name || window._group.data?.tournament?.name || '';
+    if (activeName && espnName) {
+      const norm = s => s.toLowerCase().replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ').trim();
+      const espnWords   = norm(espnName).split(' ').filter(w => w.length > 3);
+      const activeWords = norm(activeName).split(' ').filter(w => w.length > 3);
+      const overlap     = espnWords.filter(w => activeWords.includes(w));
+      if (overlap.length === 0) {
+        // Wrong tournament — hide silently
+        section.classList.add('hidden');
+        return;
+      }
+    } else if (!activeName) {
+      // No active tournament set — don't show
+      section.classList.add('hidden');
+      return;
+    }
+
+    // Also hide if no scores yet (tournament hasn't started — all toPar are null)
+    const hasAnyScore = players.some(p => p.toPar !== null && p.toPar !== undefined);
+    if (!hasAnyScore) {
+      section.classList.add('hidden');
+      return;
+    }
+
+    section.classList.remove('hidden');
+
+    const picksSnap = await get(ref(db, `groups/${window._group.id}/picks`));
+    const picksData = picksSnap.exists() ? picksSnap.val() : {};
+    const pickedIds = new Set();
+    Object.values(picksData).forEach(p => {
+      ['usa','europe','row'].forEach(r => { if (p[r]?.id) pickedIds.add(p[r].id); });
+    });
+
+    const sorted = [...players].sort((a, b) => {
+      const sa = parseScore(a.toPar), sb = parseScore(b.toPar);
+      if (sa !== null && sb !== null) return sa - sb;
+      if (sa !== null) return -1; if (sb !== null) return 1; return 0;
+    });
+    let pos = 1;
+    const rows = sorted.map((p, i) => {
+      const sr = (p.status || '').toLowerCase();
+      const isCut = sr === 'cut' || sr === 'wd' || sr === 'mc' || sr.includes('cut') || sr.includes('withdraw');
+      const isPicked = pickedIds.has(p.id);
+      const sn = parseScore(p.toPar);
+      if (!isCut && (i === 0 || parseScore(sorted[i-1]?.toPar) !== sn)) pos = i + 1;
+      const isTied   = !isCut && i > 0 && parseScore(sorted[i-1]?.toPar) === sn;
+      const posLabel = isCut ? 'CUT' : (isTied ? `T${pos}` : String(pos));
+      const thruStr  = isCut ? '✂️' : (p.thru === 'F' || Number(p.thru) >= 18) ? 'F' : (p.thru && p.thru !== '0') ? `/${p.thru}` : '';
+      return `<div class="golf-lb-item${isPicked?' my-pick':''}">
+        <span class="golf-lb-pos">${posLabel}</span>
+        <div style="flex:1;min-width:0;">
+          <div class="golf-lb-name${isCut?' cut':''}">${escHtml(p.name)}${isPicked?' 📌':''}</div>
+          <div class="golf-lb-country">${escHtml(p.country||'')}</div>
+        </div>
+        <span class="golf-lb-score">${p.toPar ? formatScore(p.toPar) : '<span style="color:var(--text-light)">—</span>'}</span>
+        <span class="golf-lb-thru">${thruStr}</span>
+      </div>`;
+    });
+    list.innerHTML = `<div style="background:var(--white);border-radius:var(--radius-lg);padding:12px 16px;box-shadow:var(--shadow);">${rows.join('')}</div>`;
+  };
+
+  async function renderHistory() {
+    const gid  = window._group.id;
+    const g    = window._group.data;
+    const uid  = auth.currentUser.uid;
+    const list = document.getElementById('gs-history-list');
+    const isOwner = uid === g.ownerId || window._state.isSuperadmin;
+    const addSection = document.getElementById('gs-add-tournament-section');
+    if (addSection) addSection.classList.toggle('hidden', g.format !== 'season' || !isOwner);
+
+    function rankRows(results) {
+      const scored = (results || []).filter(r => r.total !== null).sort((a,b) => a.total - b.total);
+      if (!scored.length) return '';
+      return scored.map((r, i) => {
+        const isFirst = i === 0;
+        const isLast  = i === scored.length-1 && scored.length > 1 && r.total !== scored[0].total;
+        const sign    = isFirst ? '👑' : (isLast ? '💩' : `${i+1}.`);
+        const n = r.total;
+        const scoreStr = n > 0 ? `+${n}` : n === 0 ? 'E' : String(n);
+        const color    = n < 0 ? 'var(--success)' : n > 0 ? 'var(--error)' : 'var(--text-mid)';
+        return `<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin-top:4px;">
+          <span style="min-width:22px;font-weight:700;color:var(--green);text-align:center;">${sign}</span>
+          <span style="flex:1;color:var(--text-dark);">${escHtml(r.name)}</span>
+          <span style="font-weight:700;color:${color};">${scoreStr}</span>
+        </div>`;
+      }).join('');
+    }
+
+    if (g.format === 'season') {
+      const tournaments = g.seasonTournaments || [];
+      if (!tournaments.length) {
+        list.innerHTML = emptyState('📅', isOwner ? 'Noch keine Turniere. Nutze den Button oben!' : 'Noch keine Turniere in dieser Season.');
+        return;
+      }
+      const histSnap = await get(ref(db, `groups/${gid}/history`));
+      const history  = histSnap.exists() ? histSnap.val() : {};
+      const now      = new Date();
+      const activeId        = g.activeTournament?.id;
+      const activeCompleted = g.activeTournament?.completed;
+      list.innerHTML = tournaments.map(t => {
+        const isPast   = t.date && new Date(t.date) < now;
+        const result   = history[t.id];
+        const dateStr  = t.date ? new Date(t.date).toLocaleDateString('de-DE', {day:'numeric',month:'short',year:'numeric'}) : '';
+        const isActive = t.id === activeId && !activeCompleted;
+        let statusHtml;
+        if (isActive) {
+          statusHtml = '<span style="color:var(--success);font-weight:600;font-size:13px;">🟢 Aktiv — Picks offen</span>';
+        } else if (t.completed && result?.results) {
+          statusHtml = rankRows(result.results);
+        } else if (t.completed) {
+          statusHtml = '<span style="color:var(--text-light);font-size:12px;">✅ Abgeschlossen</span>';
+        } else if (isPast) {
+          statusHtml = '<span style="color:var(--text-light);font-size:12px;">⏳ Ergebnisse ausstehend</span>';
+        } else {
+          statusHtml = '<span style="color:var(--text-light);font-size:12px;">📅 Anstehend</span>';
+        }
+        const setActiveBtn = (isOwner && !isActive && !t.completed)
+          ? `<div style="margin-top:8px;"><button class="btn btn-sm btn-secondary" style="font-size:11px;padding:5px 12px;"
+               data-tid="${escHtml(t.id)}" data-tname="${escHtml(t.name)}" data-tdate="${escHtml(t.date||'')}"
+               onclick="setActiveTournamentFromEl(this)">▶ Set Active</button></div>` : '';
+        const resetBtn = (isOwner && t.completed)
+          ? `<button data-tid="${escHtml(t.id)}" onclick="resetCompletedTournament(this.dataset.tid)"
+               style="background:none;border:none;font-size:11px;color:var(--text-light);cursor:pointer;padding:2px 0;margin-top:6px;text-decoration:underline;display:block;">↩ Zurücksetzen</button>` : '';
+        return `<div class="past-tournament-item" style="${isActive?'border:2px solid var(--green);':''}">
+          <div class="past-t-header">
+            <div class="past-t-name">${escHtml(t.name)}${isActive?' 🟢':''}</div>
+            <div class="past-t-date">${dateStr}</div>
+          </div>
+          <div style="margin-top:4px;">${statusHtml}</div>
+          ${setActiveBtn}${resetBtn}
+        </div>`;
+      }).join('');
+      return;
+    }
+
+    if (g.format === 'major_slam') {
+      const majors = g.majorTournaments || [
+        {id:'masters',name:'The Masters'},{id:'pga-champ',name:'PGA Championship'},
+        {id:'us-open',name:'U.S. Open'},{id:'the-open',name:'The Open Championship'},
+        {id:'fedex',name:'FedEx Cup Playoffs'},
+      ];
+      const histSnap = await get(ref(db, `groups/${gid}/history`));
+      const history  = histSnap.exists() ? histSnap.val() : {};
+      const currentIdx = g.currentTournamentIndex || 0;
+      list.innerHTML = majors.map((t, i) => {
+        const result   = history[t.id];
+        const isActive = i === currentIdx;
+        const isPast   = i < currentIdx;
+        let bodyHtml = isPast && result?.results ? rankRows(result.results) : isPast ? '<span style="color:var(--text-light);font-size:12px;">⏳ Ausstehend</span>' : '';
+        const resetBtn = (isOwner && isPast && result)
+          ? `<button data-tid="${escHtml(t.id)}" onclick="resetCompletedTournament(this.dataset.tid)"
+               style="background:none;border:none;font-size:11px;color:var(--text-light);cursor:pointer;padding:2px 0;margin-top:6px;text-decoration:underline;display:block;">↩ Zurücksetzen</button>` : '';
+        return `<div class="past-tournament-item" style="${isActive?'border:2px solid var(--green);':''}">
+          <div class="past-t-header">
+            <div class="past-t-name">${i+1}. ${escHtml(t.name)}</div>
+            <div class="past-t-date">${isActive?'🟢 Aktiv':isPast?'✅ Fertig':'📅 Anstehend'}</div>
+          </div>
+          ${bodyHtml?`<div style="margin-top:4px;">${bodyHtml}</div>`:''}${resetBtn}
+        </div>`;
+      }).join('');
+      return;
+    }
+
+    if (g.format === 'single') {
+      const histSnap = await get(ref(db, `groups/${gid}/history`));
+      if (histSnap.exists()) {
+        const history = histSnap.val();
+        list.innerHTML = Object.entries(history).map(([tid, t]) => `
+          <div class="past-tournament-item">
+            <div class="past-t-header">
+              <div class="past-t-name">${escHtml(t.name)}</div>
+              <div class="past-t-date">${t.date?new Date(t.date).toLocaleDateString('de-DE',{day:'numeric',month:'short',year:'numeric'}):''}</div>
+            </div>
+            <div style="margin-top:4px;">${rankRows(t.results)}</div>
+          </div>`).join('');
+      } else {
+        list.innerHTML = emptyState('📋', 'Noch keine Turnierergebnisse.');
+      }
+      return;
+    }
+    list.innerHTML = emptyState('📋', 'Keine History verfügbar.');
+  }
+
+  function friendlyAuthError(code) {
+    const map = {
+      'auth/user-not-found':       'No account found with this email.',
+      'auth/wrong-password':       'Incorrect password.',
+      'auth/invalid-email':        'Invalid email address.',
+      'auth/email-already-in-use': 'An account with this email already exists.',
+      'auth/weak-password':        'Password must be at least 6 characters.',
+      'auth/too-many-requests':    'Too many attempts. Please try again later.',
+      'auth/invalid-credential':   'Incorrect email or password.',
+    };
+    return map[code] || 'Something went wrong. Please try again.';
+  }
+
+</script>
+
+<!-- ============================================================
+     UI LOGIC (non-Firebase, safe to be regular script)
+============================================================ -->
+<script>
+  /* ----------------------------------------------------------
+     SCREEN MANAGEMENT
+  ---------------------------------------------------------- */
+  function showScreen(name) {
+    document.getElementById('auth-screen').classList.add('hidden');
+    document.getElementById('app-screen').classList.remove('active');
+    document.getElementById('forgot-screen').classList.add('hidden');
+
+    if (name === 'auth')   document.getElementById('auth-screen').classList.remove('hidden');
+    if (name === 'app')    document.getElementById('app-screen').classList.add('active');
+    if (name === 'forgot') document.getElementById('forgot-screen').classList.remove('hidden');
+  }
+
+  /* ----------------------------------------------------------
+     NAVIGATION
+  ---------------------------------------------------------- */
+  function navigateTo(page) {
+    document.getElementById('page-group').classList.remove('active');
+    ['home','profile','admin'].forEach(p => {
+      document.getElementById(`page-${p}`).classList.add('hidden');
+      const navBtn = document.getElementById(`nav-${p}`);
+      if (navBtn) navBtn.classList.remove('active');
+    });
+    document.getElementById(`page-${page}`).classList.remove('hidden');
+    const navBtn = document.getElementById(`nav-${page}`);
+    if (navBtn) navBtn.classList.add('active');
+    if (page === 'admin') window.loadAdminUsers && window.loadAdminUsers();
+  }
+
+  /* ----------------------------------------------------------
+     AUTH TABS
+  ---------------------------------------------------------- */
+  function switchAuthTab(tab) {
+    document.querySelectorAll('.auth-tab').forEach((t,i) => {
+      t.classList.toggle('active', (i===0 && tab==='login') || (i===1 && tab==='register'));
+    });
+    document.getElementById('login-form').classList.toggle('hidden',    tab !== 'login');
+    document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
+  }
+
+  /* ----------------------------------------------------------
+     MODALS
+  ---------------------------------------------------------- */
+  function openModal(id) {
+    document.getElementById(id).classList.add('active');
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+  }
+
+  function closeModalOnOverlay(event, id) {
+    if (event.target === document.getElementById(id)) closeModal(id);
+  }
+
+  /* ----------------------------------------------------------
+     TOASTS
+  ---------------------------------------------------------- */
+  function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast     = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+  }
+  window.showToast = showToast;
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      regs.forEach(reg => reg.unregister());
+    });
+  }
+  if ('caches' in window) {
+    caches.keys().then(keys => {
+      keys.forEach(key => caches.delete(key));
+    });
+  }
+
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('pwa-install-btn')?.classList.remove('hidden');
+  });
+
+  window.installPWA = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const result = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    document.getElementById('pwa-install-btn')?.classList.add('hidden');
+  };
+
+  window.addEventListener('appinstalled', () => {
+    document.getElementById('pwa-install-btn')?.classList.add('hidden');
+  });
+</script>
+
+</body>
+</html>
