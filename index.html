@@ -1049,14 +1049,19 @@
     .lb-score { font-family: 'Playfair Display', serif; font-size: 21px; font-weight: 900; color: var(--green); text-align: right; min-width: 48px; }
     .lb-score.no-score { font-size: 13px; color: var(--text-light); font-family: 'DM Sans', sans-serif; font-weight: 400; }
     .lb-picks-detail { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--cream-dark); display: flex; flex-direction: column; gap: 6px; }
-    .lb-pick-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; gap: 6px; }
-    .lb-pick-row .pick-player { font-weight: 600; color: var(--text-dark); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lb-pick-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; gap: 8px; }
+    .lb-pick-left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+    .lb-pick-left .pick-player { font-weight: 600; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lb-pick-left .pick-player.cut { color: var(--text-light); text-decoration: line-through; }
+    .lb-pick-left .pick-country-small { font-size: 11px; color: var(--text-light); display: flex; align-items: center; gap: 4px; }
+    .lb-pick-right { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
     .lb-pick-row .pick-region-tag { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 20px; text-transform: uppercase; flex-shrink: 0; }
     .tag-usa    { background: #FFE8E8; color: #B22234; }
     .tag-europe { background: #E8ECFF; color: #003399; }
     .tag-row    { background: var(--green-subtle); color: var(--green-mid); }
-    .lb-pick-row .pick-score-val { font-weight: 700; color: var(--green); display: flex; align-items: center; gap: 3px; flex-shrink: 0; }
+    .lb-pick-row .pick-score-val { font-weight: 700; color: var(--green); }
     .lb-pick-row .pick-score-val.cut { color: var(--text-light); }
+    .lb-pick-row .pick-thru { font-size: 11px; color: var(--text-light); font-weight: 500; min-width: 22px; text-align: right; }
     .member-item { background: var(--white); border-radius: var(--radius); padding: 12px 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 8px; box-shadow: var(--shadow); }
     .member-avatar { width: 36px; height: 36px; border-radius: 9px; background: var(--green); color: var(--cream); font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .member-info { flex: 1; }
@@ -1071,6 +1076,17 @@
     .score-positive { color: #C0392B; }
     .score-negative { color: #27AE60; }
     .score-even     { color: var(--text-mid); }
+
+    /* Golf leaderboard */
+    .golf-lb-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--cream-dark); font-size: 13px; }
+    .golf-lb-item:last-child { border-bottom: none; }
+    .golf-lb-pos { min-width: 28px; font-weight: 700; color: var(--text-light); text-align: center; font-size: 12px; }
+    .golf-lb-name { flex: 1; font-weight: 600; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .golf-lb-name.cut { color: var(--text-light); text-decoration: line-through; }
+    .golf-lb-country { font-size: 11px; color: var(--text-light); }
+    .golf-lb-score { font-weight: 700; min-width: 36px; text-align: right; }
+    .golf-lb-thru { font-size: 11px; color: var(--text-light); min-width: 24px; text-align: right; }
+    .golf-lb-item.my-pick { background: var(--green-subtle); border-radius: 6px; padding: 8px 8px; margin: 0 -4px; }
 
     /* ============================================================
        RESPONSIVE DESKTOP
@@ -1379,6 +1395,14 @@
         <div id="gs-last-updated" style="font-size:11px;color:var(--text-light);text-align:right;margin-bottom:8px;"></div>
         <div id="gs-leaderboard-list">
           <div class="empty-state"><div class="empty-icon">⛳</div><p>Loading leaderboard...</p></div>
+        </div>
+        <!-- Golf tournament leaderboard -->
+        <div id="gs-golf-leaderboard-section" style="margin-top:20px;" class="hidden">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
+            <span>⛳ Turnier-Leaderboard</span>
+            <button class="btn btn-sm btn-ghost" style="font-size:11px;padding:4px 8px;" onclick="renderGolfLeaderboard(true)">↻</button>
+          </div>
+          <div id="gs-golf-leaderboard-list"></div>
         </div>
       </div>
 
@@ -2319,6 +2343,7 @@
 
     renderLeaderboard();
     renderMembers();
+    renderGolfLeaderboard();
 
     if (window._autoRefreshTimer) clearInterval(window._autoRefreshTimer);
     window._autoRefreshTimer = setInterval(async () => {
@@ -2350,8 +2375,9 @@
       const tabs = ['leaderboard','picks','members','history'];
       btn.classList.toggle('active', tabs[i] === tab);
     });
-    if (tab === 'picks')   renderPicksTab();
-    if (tab === 'history') renderHistory();
+    if (tab === 'picks')       renderPicksTab();
+    if (tab === 'history')     renderHistory();
+    if (tab === 'leaderboard') renderGolfLeaderboard();
   };
 
   function renderGroupBanner() {
@@ -2837,7 +2863,9 @@
           if (!pick) return;
           const scoreData = window._group.scores[pick.id];
           const toPar     = scoreData?.toPar ?? null;
-          const isCut     = scoreData?.status === 'cut' || scoreData?.status === 'wd';
+          const statusRaw = (scoreData?.status || '').toLowerCase();
+          const isCut     = statusRaw === 'cut' || statusRaw === 'wd' || statusRaw === 'mc' ||
+                            statusRaw.includes('cut') || statusRaw.includes('withdraw');
           const numScore  = toPar ? parseScore(toPar) : null;
           if (numScore !== null) { total += numScore; hasScore = true; }
           const tagClass  = region === 'usa' ? 'tag-usa' : region === 'europe' ? 'tag-europe' : 'tag-row';
@@ -2870,21 +2898,37 @@
       rank++;
     });
 
+    // Determine crown/poop based on current standings (not accumulated trophies)
+    const scoredEntries = entries.filter(e => e.totalScore !== null);
+    const bestScore  = scoredEntries.length ? scoredEntries[0].totalScore : null;
+    const worstScore = scoredEntries.length ? scoredEntries[scoredEntries.length - 1].totalScore : null;
+    const hasUniqueWinner = scoredEntries.length >= 2 && bestScore !== worstScore;
+
     list.innerHTML = entries.map(e => {
-      const crownBadges = e.trophies.filter(t => t === 'crown').map(() => '👑').join('');
-      const poopBadges  = e.trophies.filter(t => t === 'poop').map(()  => '💩').join('');
+      // Crown: rank 1 with a score (show one per tied winner)
+      const showCrown = e.totalScore !== null && e.totalScore === bestScore && scoredEntries.length >= 1;
+      // Poop: last place, only if different from winner (no poop if all tied)
+      const showPoop  = e.totalScore !== null && e.totalScore === worstScore && hasUniqueWinner;
+      const crownBadges = showCrown ? '👑' : '';
+      const poopBadges  = showPoop  ? '💩' : '';
 
       const pickDetail = (locked && e.pickRows.length) ? `
         <div class="lb-picks-detail">
-          ${e.pickRows.map(p => `
-            <div class="lb-pick-row">
-              <span class="pick-player">${escHtml(p.name)}</span>
-              <span class="pick-region-tag ${p.tagClass}">${p.tagLabel}</span>
-              <span class="pick-score-val${p.isCut?' cut':''}">
-                ${p.toPar ? formatScore(p.toPar) : '—'}
-                ${p.isCut ? '✂️' : ''}
-              </span>
-            </div>`).join('')}
+          ${e.pickRows.map(p => {
+            const thruDisplay = p.isCut ? '✂️' :
+              (p.thru === 'F' || p.thru === '18' || Number(p.thru) >= 18) ? 'F' :
+              (p.thru && p.thru !== '0') ? `/${p.thru}` : '';
+            return `<div class="lb-pick-row">
+              <div class="lb-pick-left">
+                <span class="pick-player${p.isCut?' cut':''}">${escHtml(p.name)} ${p.isCut ? '✂️' : ''}</span>
+                <span class="pick-country-small">${escHtml(p.country)} · <span class="pick-region-tag ${p.tagClass}">${p.tagLabel}</span></span>
+              </div>
+              <div class="lb-pick-right">
+                <span class="pick-score-val${p.isCut?' cut':''}">${p.toPar ? formatScore(p.toPar) : '—'}</span>
+                ${thruDisplay ? `<span class="pick-thru">${thruDisplay}</span>` : ''}
+              </div>
+            </div>`;
+          }).join('')}
         </div>` : (!locked && e.submitted ? `<div style="font-size:12px;color:var(--text-light);margin-top:8px;">Picks revealed after deadline</div>` : '');
 
       const scoreDisplay = e.totalScore !== null
@@ -3055,14 +3099,30 @@
     const gid        = window._group.id;
     const g          = window._group.data;
     if (g.activeTournament?.id && !g.activeTournament?.completed) {
-      showToast('End the current tournament first before activating a new one.', 'error');
+      showToast('Beende zuerst das aktive Turnier, bevor du ein neues aktivierst.', 'error');
       return;
     }
     const tournament = { id, name, date, completed: false };
-    await update(ref(db, `groups/${gid}`), { activeTournament: tournament });
-    await update(ref(db, `groups/${gid}`), { picks: null });
-    window._group.data.activeTournament = tournament;
-    showToast(`"${name}" is now active — picks open! 🎉`, 'success');
+
+    // Calculate new deadline for the new tournament
+    let newDeadlineTs = null;
+    if (date) {
+      newDeadlineTs = calcDeadlineForTournament(date).getTime();
+    } else {
+      // Default: 7 days from now (fallback)
+      newDeadlineTs = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    }
+
+    await update(ref(db, `groups/${gid}`), {
+      activeTournament:  tournament,
+      picks:             null,
+      deadlineTimestamp: newDeadlineTs,
+    });
+    window._group.data.activeTournament  = tournament;
+    window._group.data.deadlineTimestamp = newDeadlineTs;
+    // Reset deadline state so picks are now open
+    window._group.deadlinePassed = false;
+    showToast(`"${name}" ist jetzt aktiv — Picks sind offen! 🎉`, 'success');
     renderGroupBanner();
     renderHistory();
     renderLeaderboard();
@@ -3228,7 +3288,7 @@
       await update(ref(db, `users/${r.uid}/stats`), { [gid + '_' + tid]: statEntry });
     }
 
-    showToast(`Tournament ended! 🏆 Winner: ${winner?.name || '—'}`, 'success');
+    showToast(`Turnier beendet! 🏆 Sieger: ${winner?.name || '—'}`, 'success');
 
     // Reload group data from Firebase and re-render
     const fresh = await get(ref(db, `groups/${gid}`));
@@ -3236,6 +3296,81 @@
     renderGroupBanner();
     renderHistory();
     renderLeaderboard();
+    // Switch to History tab so admin can immediately Set Active the next tournament
+    if (window._group.data.format === 'season' || window._group.data.format === 'major_slam') {
+      switchGroupTab('history');
+    }
+  };
+
+  /* ── GOLF TOURNAMENT LEADERBOARD ─────────────────────────── */
+  window.renderGolfLeaderboard = async function(forceRefresh = false) {
+    const section = document.getElementById('gs-golf-leaderboard-section');
+    const list    = document.getElementById('gs-golf-leaderboard-list');
+    if (!section || !list) return;
+
+    // Get all picked player IDs for highlighting
+    const g = window._group.data;
+    const picksSnap = await get(ref(db, `groups/${window._group.id}/picks`));
+    const picksData = picksSnap.exists() ? picksSnap.val() : {};
+    const pickedIds = new Set();
+    Object.values(picksData).forEach(p => {
+      ['usa','europe','row'].forEach(r => { if (p[r]?.id) pickedIds.add(p[r].id); });
+    });
+
+    let players = window._group.players || [];
+    if (forceRefresh || !players.length) {
+      list.innerHTML = '<div style="font-size:12px;color:var(--text-light);padding:8px 0;">Lade Daten von ESPN...</div>';
+      await loadGroupPlayers(false);
+      players = window._group.players || [];
+    }
+
+    if (!players.length) {
+      section.classList.add('hidden');
+      return;
+    }
+
+    section.classList.remove('hidden');
+
+    // Sort by score (toPar)
+    const sorted = [...players].sort((a, b) => {
+      const sa = parseScore(a.toPar);
+      const sb = parseScore(b.toPar);
+      if (sa !== null && sb !== null) return sa - sb;
+      if (sa !== null) return -1;
+      if (sb !== null) return  1;
+      return 0;
+    });
+
+    let pos = 1;
+    const rows = sorted.map((p, i) => {
+      const statusRaw = (p.status || '').toLowerCase();
+      const isCut = statusRaw === 'cut' || statusRaw === 'wd' || statusRaw === 'mc' || statusRaw.includes('cut') || statusRaw.includes('withdraw');
+      const isPicked = pickedIds.has(p.id);
+      const thruDisplay = isCut ? '✂️' :
+        (p.thru === 'F' || p.thru === '18' || Number(p.thru) >= 18) ? 'F' :
+        (p.thru && p.thru !== '0') ? `/${p.thru}` : '';
+
+      const scoreNum = parseScore(p.toPar);
+      let posLabel;
+      if (isCut) { posLabel = 'CUT'; pos = i + 2; }
+      else if (i > 0 && parseScore(sorted[i-1].toPar) === scoreNum) {
+        posLabel = 'T' + pos;
+      } else { pos = i + 1; posLabel = String(pos); }
+
+      const scoreHtml = p.toPar ? formatScore(p.toPar) : '<span style="color:var(--text-light)">—</span>';
+
+      return `<div class="golf-lb-item${isPicked ? ' my-pick' : ''}">
+        <span class="golf-lb-pos">${posLabel}</span>
+        <div style="flex:1;min-width:0;">
+          <div class="golf-lb-name${isCut ? ' cut' : ''}">${escHtml(p.name)}${isPicked ? ' 📌' : ''}</div>
+          <div class="golf-lb-country">${escHtml(p.country || '')}</div>
+        </div>
+        <span class="golf-lb-score">${scoreHtml}</span>
+        <span class="golf-lb-thru">${thruDisplay}</span>
+      </div>`;
+    });
+
+    list.innerHTML = `<div style="background:var(--white);border-radius:var(--radius-lg);padding:12px 16px;box-shadow:var(--shadow);">${rows.join('')}</div>`;
   };
 
   async function renderHistory() {
@@ -3263,18 +3398,46 @@
       list.innerHTML = tournaments.map(t => {
         const isPast     = t.date && new Date(t.date) < now;
         const result     = history[t.id];
-        const winnerName = result?.winner || '—';
-        const dateStr    = t.date ? new Date(t.date).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '';
-        const isActive   = t.id === activeId;
+        const dateStr    = t.date ? new Date(t.date).toLocaleDateString('de-DE', { day:'numeric', month:'short', year:'numeric' }) : '';
+        const isActive   = t.id === activeId && !g.activeTournament?.completed;
+
+        let resultHtml = '';
+        if (isActive) {
+          resultHtml = '🟢 Aktiv — Picks offen';
+        } else if (t.completed && result) {
+          const memberResults = result.results || [];
+          const scored = memberResults.filter(r => r.total !== null).sort((a,b) => a.total - b.total);
+          const winnerR = scored[0];
+          const loserR  = scored.length > 1 ? scored[scored.length - 1] : null;
+          const rankRows = scored.map((r, i) => {
+            const isFirst = i === 0;
+            const isLast  = i === scored.length - 1 && scored.length > 1 && r.total !== scored[0].total;
+            const sign = isFirst ? '👑' : (isLast ? '💩' : `${i+1}.`);
+            const scoreStr = r.total > 0 ? `+${r.total}` : r.total === 0 ? 'E' : String(r.total);
+            return `<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin-top:3px;">
+              <span style="min-width:20px;font-weight:700;color:var(--green)">${sign}</span>
+              <span style="flex:1;color:var(--text-dark)">${escHtml(r.name)}</span>
+              <span style="font-weight:700;color:${r.total < 0 ? 'var(--success)' : r.total > 0 ? 'var(--error)' : 'var(--text-mid)'}">${scoreStr}</span>
+            </div>`;
+          }).join('');
+          resultHtml = `<div style="margin-top:2px;">${rankRows || '—'}</div>`;
+        } else if (t.completed) {
+          resultHtml = '✅ Abgeschlossen';
+        } else if (isPast) {
+          resultHtml = '⏳ Ergebnisse ausstehend';
+        } else {
+          resultHtml = '📅 Anstehend';
+        }
+
         return `<div class="past-tournament-item" style="${isActive ? 'border:2px solid var(--green);' : ''}">
           <div class="past-t-header">
             <div class="past-t-name">${escHtml(t.name)} ${isActive ? '🟢' : ''}</div>
             <div class="past-t-date">${dateStr}</div>
           </div>
-          <div class="past-t-winner" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-            <span>${isActive ? '🟢 Active — picks open' : t.completed ? '✅ ' + (result ? '🏆 ' + escHtml(winnerName) : 'Completed') : isPast ? '⏳ Results pending' : '📅 Upcoming'}</span>
-            ${isOwner && !isActive && !t.completed ? `<button class="btn btn-sm btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="setActiveTournament('${t.id}','${escHtml(t.name)}','${t.date||''}')">Set Active</button>` : ''}
+          <div class="past-t-winner" style="margin-top:6px;">
+            ${resultHtml}
           </div>
+          ${isOwner && !isActive && !t.completed ? `<div style="margin-top:8px;"><button class="btn btn-sm btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="setActiveTournament('${t.id}','${escHtml(t.name)}','${t.date||''}')">Set Active</button></div>` : ''}
         </div>`;
       }).join('');
       return;
@@ -3292,18 +3455,36 @@
       const history  = histSnap.exists() ? histSnap.val() : {};
       const currentIdx = g.currentTournamentIndex || 0;
       list.innerHTML = majors.map((t, i) => {
-        const result     = history[t.id];
-        const isActive   = i === currentIdx;
-        const isPast     = i < currentIdx;
-        const winnerName = result?.winner || '—';
+        const result   = history[t.id];
+        const isActive = i === currentIdx;
+        const isPast   = i < currentIdx;
+
+        let resultHtml = '';
+        if (isPast && result) {
+          const memberResults = result.results || [];
+          const scored = memberResults.filter(r => r.total !== null).sort((a,b) => a.total - b.total);
+          const rankRows = scored.map((r, idx) => {
+            const isFirst = idx === 0;
+            const isLast  = idx === scored.length - 1 && scored.length > 1 && r.total !== scored[0].total;
+            const sign = isFirst ? '👑' : (isLast ? '💩' : `${idx+1}.`);
+            const scoreStr = r.total > 0 ? `+${r.total}` : r.total === 0 ? 'E' : String(r.total);
+            return `<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin-top:3px;">
+              <span style="min-width:20px;font-weight:700;color:var(--green)">${sign}</span>
+              <span style="flex:1;color:var(--text-dark)">${escHtml(r.name)}</span>
+              <span style="font-weight:700;color:${r.total < 0 ? 'var(--success)' : r.total > 0 ? 'var(--error)' : 'var(--text-mid)'}">${scoreStr}</span>
+            </div>`;
+          }).join('');
+          resultHtml = rankRows || '⏳ Ergebnisse ausstehend';
+        } else if (isPast) {
+          resultHtml = '⏳ Ergebnisse ausstehend';
+        }
+
         return `<div class="past-tournament-item" style="${isActive ? 'border:2px solid var(--green);' : ''}">
           <div class="past-t-header">
             <div class="past-t-name">${i+1}. ${escHtml(t.name)}</div>
-            <div class="past-t-date">${isActive ? '🟢 Active' : isPast ? '✅ Done' : '📅 Upcoming'}</div>
+            <div class="past-t-date">${isActive ? '🟢 Aktiv' : isPast ? '✅ Fertig' : '📅 Anstehend'}</div>
           </div>
-          <div class="past-t-winner">
-            ${isPast && result ? '🏆 ' + escHtml(winnerName) : isPast ? '⏳ Results pending' : ''}
-          </div>
+          ${resultHtml ? `<div class="past-t-winner" style="margin-top:6px;">${resultHtml}</div>` : ''}
         </div>`;
       }).join('');
       return;
@@ -3314,21 +3495,35 @@
       const histSnap = await get(ref(db, `groups/${gid}/history`));
       if (histSnap.exists()) {
         const history = histSnap.val();
-        list.innerHTML = Object.entries(history).map(([tid, t]) => `
-          <div class="past-tournament-item">
+        list.innerHTML = Object.entries(history).map(([tid, t]) => {
+          const memberResults = t.results || [];
+          const scored = memberResults.filter(r => r.total !== null).sort((a,b) => a.total - b.total);
+          const rankRows = scored.map((r, idx) => {
+            const isFirst = idx === 0;
+            const isLast  = idx === scored.length - 1 && scored.length > 1 && r.total !== scored[0].total;
+            const sign = isFirst ? '👑' : (isLast ? '💩' : `${idx+1}.`);
+            const scoreStr = r.total > 0 ? `+${r.total}` : r.total === 0 ? 'E' : String(r.total);
+            return `<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin-top:3px;">
+              <span style="min-width:20px;font-weight:700;color:var(--green)">${sign}</span>
+              <span style="flex:1;color:var(--text-dark)">${escHtml(r.name)}</span>
+              <span style="font-weight:700;color:${r.total < 0 ? 'var(--success)' : r.total > 0 ? 'var(--error)' : 'var(--text-mid)'}">${scoreStr}</span>
+            </div>`;
+          }).join('');
+          return `<div class="past-tournament-item">
             <div class="past-t-header">
               <div class="past-t-name">${escHtml(t.name)}</div>
-              <div class="past-t-date">${t.date ? new Date(t.date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : ''}</div>
+              <div class="past-t-date">${t.date ? new Date(t.date).toLocaleDateString('de-DE',{day:'numeric',month:'short',year:'numeric'}) : ''}</div>
             </div>
-            <div class="past-t-winner">✅ 🏆 ${escHtml(t.winner || '—')}</div>
-          </div>`).join('');
+            <div class="past-t-winner" style="margin-top:6px;">${rankRows || '—'}</div>
+          </div>`;
+        }).join('');
       } else {
-        list.innerHTML = emptyState('📋', 'No tournament history yet.');
+        list.innerHTML = emptyState('📋', 'Noch keine Turnierergebnisse.');
       }
       return;
     }
 
-    list.innerHTML = emptyState('📋', 'No history available for this format.');
+    list.innerHTML = emptyState('📋', 'Keine History verfügbar.');
   }
 
   function friendlyAuthError(code) {
