@@ -3514,42 +3514,71 @@
     const el   = document.getElementById('gs-season-standings');
     if (!el) return;
 
-    const spSnap = await get(ref(db, `groups/${gid}/seasonPoints`));
+    const [spSnap, histSnap] = await Promise.all([
+      get(ref(db, `groups/${gid}/seasonPoints`)),
+      get(ref(db, `groups/${gid}/history`)),
+    ]);
     const seasonPoints = spSnap.exists() ? spSnap.val() : {};
+    const historyData  = histSnap.exists() ? histSnap.val() : {};
 
-    // Build standings from all members
+    // Count poops per member from tournament history results
+    const poopCount = {};
+    Object.values(historyData).forEach(t => {
+      const results = t.results || [];
+      const scored  = results.filter(r => r.total !== null).sort((a,b) => a.total - b.total);
+      if (scored.length < 2) return;
+      const worstScore = scored[scored.length - 1].total;
+      const bestScore  = scored[0].total;
+      if (worstScore === bestScore) return; // all tied, no poop
+      scored.filter(r => r.total === worstScore).forEach(r => {
+        poopCount[r.uid] = (poopCount[r.uid] || 0) + 1;
+        // store name for display
+        if (!poopCount[r.uid + '_name']) poopCount[r.uid + '_name'] = r.name;
+      });
+    });
+
+    // Build standings: all group members + anyone with points
     const members = g.members || {};
+    const allUids = new Set([
+      ...Object.keys(members),
+      ...Object.keys(seasonPoints).filter(k => k !== '_history'),
+    ]);
+
     const memberSnaps = await Promise.all(
-      Object.keys(members).map(async uid => {
-        const uSnap = await get(ref(db, `users/${uid}`));
-        const name  = uSnap.exists() ? uSnap.val().name : 'Unknown';
-        const sp    = seasonPoints[uid] || { points: 0, wins: 0 };
-        return { uid, name, points: sp.points || 0, wins: sp.wins || 0 };
+      [...allUids].map(async uid => {
+        const sp = seasonPoints[uid];
+        let name = sp?.name || null;
+        if (!name) {
+          const uSnap = await get(ref(db, `users/${uid}`));
+          name = uSnap.exists() ? uSnap.val().name : 'Unknown';
+        }
+        return {
+          uid, name,
+          points: sp?.points || 0,
+          wins:   sp?.wins   || 0,
+          poops:  poopCount[uid] || 0,
+        };
       })
     );
 
-    memberSnaps.sort((a, b) => b.points - a.points || b.wins - a.wins);
+    memberSnaps.sort((a, b) => b.points - a.points || b.wins - a.wins || a.name.localeCompare(b.name));
 
-    if (memberSnaps.every(m => m.points === 0)) {
-      el.innerHTML = emptyState('🏆', 'Noch keine Punkte vergeben. Beende ein Turnier um Punkte zu vergeben.');
-      return;
-    }
+    // Poop table: only members with at least 1 poop, sorted by most poops
+    const poopTable = [...memberSnaps].filter(m => m.poops > 0).sort((a,b) => b.poops - a.poops);
 
-    // Tournament history
-    const history = seasonPoints._history || {};
-    const histEntries = Object.entries(history).sort((a,b) => (b[1].date||0) - (a[1].date||0));
+    const history_sp = seasonPoints._history || {};
+    const histEntries = Object.entries(history_sp).sort((a,b) => (b[1].date||0) - (a[1].date||0));
 
-    const typeLabel = t => t === 'major' ? '🏆 Major · 3 Pt' : t === 'signature' ? '⭐ Signature · 2 Pt' : '· 1 Pt';
-    const typeTag   = t => t === 'major'
+    const typeTag = t => t === 'major'
       ? `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:#FEF3CD;color:#856404;">Major 3Pt</span>`
       : t === 'signature'
       ? `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:#E8ECFF;color:#003399;">Signature 2Pt</span>`
       : `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--cream-dark);color:var(--text-mid);">Normal 1Pt</span>`;
 
     el.innerHTML = `
-      <!-- Standings table -->
+      <!-- Punkte-Tabelle -->
       <div style="background:var(--white);border-radius:var(--radius-lg);padding:16px;box-shadow:var(--shadow);margin-bottom:20px;">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light);margin-bottom:12px;">Gesamtwertung</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light);margin-bottom:12px;">🏆 Saison-Punkte</div>
         ${memberSnaps.map((m, i) => {
           const medal = i === 0 && m.points > 0 ? '🥇' : i === 1 && m.points > 0 ? '🥈' : i === 2 && m.points > 0 ? '🥉' : `${i+1}.`;
           return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--cream-dark);">
@@ -3563,17 +3592,29 @@
         }).join('')}
       </div>
 
-      <!-- Per-tournament breakdown -->
+      <!-- Scheißhaufen-Tabelle -->
+      <div style="background:var(--white);border-radius:var(--radius-lg);padding:16px;box-shadow:var(--shadow);margin-bottom:20px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light);margin-bottom:12px;">💩 Letzte Plätze</div>
+        ${poopTable.length ? poopTable.map((m, i) => `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--cream-dark);">
+            <span style="min-width:28px;font-size:16px;text-align:center;">${i === 0 ? '💩' : `${i+1}.`}</span>
+            <div style="flex:1;font-weight:700;font-size:14px;">${escHtml(m.name)}</div>
+            <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:900;color:#C0392B;">${m.poops}×</div>
+          </div>`).join('')
+        : `<div style="font-size:13px;color:var(--text-light);padding:8px 0;">Noch kein letzter Platz vergeben.</div>`}
+      </div>
+
+      <!-- Turnier-Ergebnisse -->
       ${histEntries.length ? `
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light);margin-bottom:10px;">Ergebnisse</div>
-      ${histEntries.map(([tid, t]) => `
-        <div style="background:var(--white);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow);">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-            <span style="font-weight:700;font-size:13px;">${escHtml(t.name)}</span>
-            ${typeTag(t.ttype)}
-          </div>
-          ${(t.winners||[]).map(w => `<div style="font-size:12px;color:var(--text-mid);">🏆 ${escHtml(w.name)} <span style="color:var(--green);font-weight:700;">+${w.points} Pt</span></div>`).join('')}
-        </div>`).join('')}` : ''}
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light);margin-bottom:10px;">Turnier-Ergebnisse</div>
+        ${histEntries.map(([tid, t]) => `
+          <div style="background:var(--white);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-weight:700;font-size:13px;">${escHtml(t.name)}</span>
+              ${typeTag(t.ttype)}
+            </div>
+            ${(t.winners||[]).map(w => `<div style="font-size:12px;color:var(--text-mid);">🏆 ${escHtml(w.name)} <span style="color:var(--green);font-weight:700;">+${w.points} Pt</span></div>`).join('')}
+          </div>`).join('')}` : ''}
     `;
   };
 
