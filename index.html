@@ -1398,6 +1398,7 @@
         <button class="group-tab" onclick="switchGroupTab('picks')">My Picks</button>
         <button class="group-tab" onclick="switchGroupTab('members')">Members</button>
         <button class="group-tab gs-history-tab hidden" onclick="switchGroupTab('history')">History</button>
+        <button class="group-tab gs-season-tab hidden" onclick="switchGroupTab('season')">Saison</button>
       </div>
 
       <!-- Tab: Leaderboard -->
@@ -1509,6 +1510,16 @@
         </div>
       </div>
 
+      <!-- Tab: Saison-Wertung -->
+      <div id="gs-tab-season" class="group-tab-panel hidden">
+        <div style="font-size:12px;color:var(--text-light);margin-bottom:16px;background:var(--cream-dark);border-radius:10px;padding:10px 14px;">
+          🏆 <strong>Saison-Wertung:</strong> Normal = 1 Pt · Signature Event = 2 Pt · Major = 3 Pt · Bei Gleichstand werden Punkte geteilt.
+        </div>
+        <div id="gs-season-standings">
+          <div class="empty-state"><div class="empty-icon">🏆</div><p>Noch keine Ergebnisse.</p></div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -1600,6 +1611,14 @@
         <label>Select Tournament</label>
         <select id="add-tournament-select">
           <option value="">Loading...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Turnier-Typ (Punkte)</label>
+        <select id="add-tournament-type">
+          <option value="normal">Normal — 1 Punkt</option>
+          <option value="signature">Signature Event — 2 Punkte</option>
+          <option value="major">Major — 3 Punkte</option>
         </select>
       </div>
       <div class="modal-actions">
@@ -2371,6 +2390,7 @@
 
     const fmt = window._group.data.format;
     document.querySelectorAll('.gs-history-tab').forEach(t => t.classList.toggle('hidden', fmt === 'single'));
+    document.querySelectorAll('.gs-season-tab').forEach(t => t.classList.toggle('hidden', fmt !== 'season'));
     if (fmt === 'season') renderHistory();
   };
 
@@ -2384,16 +2404,17 @@
   };
 
   window.switchGroupTab = (tab) => {
-    ['leaderboard','picks','members','history'].forEach(t => {
-      document.getElementById(`gs-tab-${t}`).classList.toggle('hidden', t !== tab);
+    ['leaderboard','picks','members','history','season'].forEach(t => {
+      document.getElementById(`gs-tab-${t}`)?.classList.toggle('hidden', t !== tab);
     });
     document.querySelectorAll('.group-tab').forEach((btn, i) => {
-      const tabs = ['leaderboard','picks','members','history'];
+      const tabs = ['leaderboard','picks','members','history','season'];
       btn.classList.toggle('active', tabs[i] === tab);
     });
     if (tab === 'picks')       renderPicksTab();
     if (tab === 'history')     renderHistory();
     if (tab === 'leaderboard') renderGolfLeaderboard();
+    if (tab === 'season')      renderSeasonStandings();
   };
 
   function renderGroupBanner() {
@@ -3122,20 +3143,23 @@
   };
 
   window.confirmAddTournament = async () => {
-    const sel  = document.getElementById('add-tournament-select');
-    const id   = sel.value;
-    const name = sel.options[sel.selectedIndex]?.dataset?.name || sel.options[sel.selectedIndex]?.text?.split(' · ')[0];
-    const date = sel.options[sel.selectedIndex]?.dataset?.date || '';
+    const sel      = document.getElementById('add-tournament-select');
+    const typeSel  = document.getElementById('add-tournament-type');
+    const id       = sel.value;
+    const name     = sel.options[sel.selectedIndex]?.dataset?.name || sel.options[sel.selectedIndex]?.text?.split(' · ')[0];
+    const date     = sel.options[sel.selectedIndex]?.dataset?.date || '';
+    const ttype    = typeSel?.value || 'normal';
     if (!id || !name) return showToast('Please select a tournament.', 'error');
     const gid = window._group.id;
     const g   = window._group.data;
     const existing = g.seasonTournaments || [];
     if (existing.find(t => t.id === id)) return showToast('Tournament already added.', 'error');
-    const updated = [...existing, { id, name, date, addedAt: Date.now() }];
+    const updated = [...existing, { id, name, date, ttype, addedAt: Date.now() }];
     await update(ref(db, `groups/${gid}`), { seasonTournaments: updated });
     window._group.data.seasonTournaments = updated;
     closeModal('add-tournament-modal');
-    showToast(`"${name}" added to season! 🎉`, 'success');
+    const typeLabel = ttype === 'major' ? 'Major (3 Pt)' : ttype === 'signature' ? 'Signature (2 Pt)' : 'Normal (1 Pt)';
+    showToast(`"${name}" hinzugefügt — ${typeLabel} 🎉`, 'success');
     renderHistory();
   };
 
@@ -3361,6 +3385,36 @@
       await update(ref(db, `users/${r.uid}/stats`), { [gid + '_' + tid]: statEntry });
     }
 
+    // ── Season points: award to winner(s) ──
+    if (g.format === 'season' && winners.length > 0) {
+      // Find tournament type from seasonTournaments
+      const tData    = (g.seasonTournaments || []).find(t => t.id === tid);
+      const ttype    = tData?.ttype || 'normal';
+      const basePoints = ttype === 'major' ? 3 : ttype === 'signature' ? 2 : 1;
+      // Split points if tied winners (round to nearest 0.5)
+      const pointsEach = winners.length === 1 ? basePoints : Math.round((basePoints / winners.length) * 2) / 2;
+
+      // Load current season points from Firebase
+      const spSnap = await get(ref(db, `groups/${gid}/seasonPoints`));
+      const seasonPoints = spSnap.exists() ? spSnap.val() : {};
+
+      for (const w of winners) {
+        const current = seasonPoints[w.uid] || { name: w.name, points: 0, wins: 0 };
+        current.name   = w.name;
+        current.points = Math.round((current.points + pointsEach) * 10) / 10;
+        current.wins   = (current.wins || 0) + 1;
+        seasonPoints[w.uid] = current;
+      }
+      await set(ref(db, `groups/${gid}/seasonPoints`), seasonPoints);
+
+      // Also save tournament result in season points history
+      await set(ref(db, `groups/${gid}/seasonPoints/_history/${tid}`), {
+        name: activeTournament.name, ttype, basePoints,
+        winners: winners.map(w => ({ uid: w.uid, name: w.name, points: pointsEach })),
+        date: Date.now(),
+      });
+    }
+
     showToast(`Turnier beendet! 🏆 Sieger: ${winner?.name || '—'}`, 'success');
     const fresh = await get(ref(db, `groups/${gid}`));
     if (fresh.exists()) window._group.data = fresh.val();
@@ -3383,6 +3437,12 @@
     }
 
     if (!players.length) { section.classList.add('hidden'); return; }
+
+    // Only show after deadline has passed (picks are locked)
+    if (!window._group.deadlinePassed) {
+      section.classList.add('hidden');
+      return;
+    }
 
     // Only show if ESPN data matches the active tournament
     const espnName   = window._group.espnTournamentName || '';
@@ -3447,6 +3507,76 @@
     list.innerHTML = `<div style="background:var(--white);border-radius:var(--radius-lg);padding:12px 16px;box-shadow:var(--shadow);">${rows.join('')}</div>`;
   };
 
+  /* ── SEASON STANDINGS ───────────────────────────────────── */
+  window.renderSeasonStandings = async function() {
+    const gid  = window._group.id;
+    const g    = window._group.data;
+    const el   = document.getElementById('gs-season-standings');
+    if (!el) return;
+
+    const spSnap = await get(ref(db, `groups/${gid}/seasonPoints`));
+    const seasonPoints = spSnap.exists() ? spSnap.val() : {};
+
+    // Build standings from all members
+    const members = g.members || {};
+    const memberSnaps = await Promise.all(
+      Object.keys(members).map(async uid => {
+        const uSnap = await get(ref(db, `users/${uid}`));
+        const name  = uSnap.exists() ? uSnap.val().name : 'Unknown';
+        const sp    = seasonPoints[uid] || { points: 0, wins: 0 };
+        return { uid, name, points: sp.points || 0, wins: sp.wins || 0 };
+      })
+    );
+
+    memberSnaps.sort((a, b) => b.points - a.points || b.wins - a.wins);
+
+    if (memberSnaps.every(m => m.points === 0)) {
+      el.innerHTML = emptyState('🏆', 'Noch keine Punkte vergeben. Beende ein Turnier um Punkte zu vergeben.');
+      return;
+    }
+
+    // Tournament history
+    const history = seasonPoints._history || {};
+    const histEntries = Object.entries(history).sort((a,b) => (b[1].date||0) - (a[1].date||0));
+
+    const typeLabel = t => t === 'major' ? '🏆 Major · 3 Pt' : t === 'signature' ? '⭐ Signature · 2 Pt' : '· 1 Pt';
+    const typeTag   = t => t === 'major'
+      ? `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:#FEF3CD;color:#856404;">Major 3Pt</span>`
+      : t === 'signature'
+      ? `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:#E8ECFF;color:#003399;">Signature 2Pt</span>`
+      : `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--cream-dark);color:var(--text-mid);">Normal 1Pt</span>`;
+
+    el.innerHTML = `
+      <!-- Standings table -->
+      <div style="background:var(--white);border-radius:var(--radius-lg);padding:16px;box-shadow:var(--shadow);margin-bottom:20px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light);margin-bottom:12px;">Gesamtwertung</div>
+        ${memberSnaps.map((m, i) => {
+          const medal = i === 0 && m.points > 0 ? '🥇' : i === 1 && m.points > 0 ? '🥈' : i === 2 && m.points > 0 ? '🥉' : `${i+1}.`;
+          return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--cream-dark);">
+            <span style="min-width:28px;font-size:16px;text-align:center;">${medal}</span>
+            <div style="flex:1;">
+              <div style="font-weight:700;font-size:14px;">${escHtml(m.name)}</div>
+              <div style="font-size:11px;color:var(--text-light);">${m.wins} Sieg${m.wins !== 1 ? 'e' : ''}</div>
+            </div>
+            <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:900;color:var(--green);">${m.points} <span style="font-size:13px;font-weight:400;color:var(--text-light);">Pt</span></div>
+          </div>`;
+        }).join('')}
+      </div>
+
+      <!-- Per-tournament breakdown -->
+      ${histEntries.length ? `
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light);margin-bottom:10px;">Ergebnisse</div>
+      ${histEntries.map(([tid, t]) => `
+        <div style="background:var(--white);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-weight:700;font-size:13px;">${escHtml(t.name)}</span>
+            ${typeTag(t.ttype)}
+          </div>
+          ${(t.winners||[]).map(w => `<div style="font-size:12px;color:var(--text-mid);">🏆 ${escHtml(w.name)} <span style="color:var(--green);font-weight:700;">+${w.points} Pt</span></div>`).join('')}
+        </div>`).join('')}` : ''}
+    `;
+  };
+
   async function renderHistory() {
     const gid  = window._group.id;
     const g    = window._group.data;
@@ -3490,6 +3620,7 @@
         const result   = history[t.id];
         const dateStr  = t.date ? new Date(t.date).toLocaleDateString('de-DE', {day:'numeric',month:'short',year:'numeric'}) : '';
         const isActive = t.id === activeId && !activeCompleted;
+        const ttypeLabel = t.ttype === 'major' ? ' 🏆 Major' : t.ttype === 'signature' ? ' ⭐ Signature' : '';
         let statusHtml;
         if (isActive) {
           statusHtml = '<span style="color:var(--success);font-weight:600;font-size:13px;">🟢 Aktiv — Picks offen</span>';
@@ -3511,7 +3642,7 @@
                style="background:none;border:none;font-size:11px;color:var(--text-light);cursor:pointer;padding:2px 0;margin-top:6px;text-decoration:underline;display:block;">↩ Zurücksetzen</button>` : '';
         return `<div class="past-tournament-item" style="${isActive?'border:2px solid var(--green);':''}">
           <div class="past-t-header">
-            <div class="past-t-name">${escHtml(t.name)}${isActive?' 🟢':''}</div>
+            <div class="past-t-name">${escHtml(t.name)}${isActive?' 🟢':''}${ttypeLabel}</div>
             <div class="past-t-date">${dateStr}</div>
           </div>
           <div style="margin-top:4px;">${statusHtml}</div>
