@@ -2592,20 +2592,20 @@
                || null,
         status: c.status?.type?.name || c.status?.type?.shortDetail || null,
         thru: (() => {
-          // 1. Try statistics field (works in some ESPN states)
+          // 1. Try statistics field
           const statThru = c.statistics?.find(s =>
             ['thru','holesPlayed','holes','holesCompleted','thruHole'].includes(s.name)
           )?.displayValue;
           if (statThru && statThru !== '0') return statThru;
-          // 2. Linescores: hole scores have value 1-8 strokes; round totals have value 60+
-          const holeScores = (c.linescores || []).filter(l => {
-            const v = l.value ?? l.scoreType?.value ?? 999;
-            return v >= 1 && v <= 8;
-          });
-          if (holeScores.length > 0) {
-            const maxHole = Math.max(...holeScores.map(l => l.period || 0));
-            if (holeScores.length >= 18 || maxHole >= 18) return 'F';
-            return String(holeScores.length);
+          // 2. Nested linescores: c.linescores = rounds, each round has .linescores = holes
+          const rounds = c.linescores || [];
+          // Find the current/latest round (last one with nested hole data)
+          for (let i = rounds.length - 1; i >= 0; i--) {
+            const holeData = rounds[i]?.linescores;
+            if (holeData && holeData.length > 0) {
+              if (holeData.length >= 18) return 'F';
+              return String(holeData.length);
+            }
           }
           // 3. status.thru fallback
           if (c.status?.thru != null) return String(c.status.thru);
