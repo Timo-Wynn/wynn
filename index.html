@@ -2591,10 +2591,25 @@
                || (c.score && c.score !== '0' ? c.score : null)
                || null,
         status: c.status?.type?.name || c.status?.type?.shortDetail || null,
-        thru:   c.statistics?.find(s => ['thru','holesPlayed','holes','holesCompleted','thruHole'].includes(s.name))?.displayValue
-             || c.status?.thru
-             || null,
-        _raw:   {
+        thru: (() => {
+          // 1. Try statistics field (works in some ESPN states)
+          const statThru = c.statistics?.find(s =>
+            ['thru','holesPlayed','holes','holesCompleted','thruHole'].includes(s.name)
+          )?.displayValue;
+          if (statThru && statThru !== '0') return statThru;
+          // 2. Linescores with scoreType = hole-level live data (no scoreType = round totals)
+          const holeLs = (c.linescores || []).filter(l => l.scoreType !== undefined && l.scoreType !== null);
+          if (holeLs.length > 0) {
+            // Check if all 18 holes done = "F"
+            const maxHole = Math.max(...holeLs.map(l => l.period || 0));
+            if (holeLs.length >= 18 || maxHole >= 18) return 'F';
+            return String(holeLs.length);
+          }
+          // 3. status.thru fallback
+          if (c.status?.thru != null) return String(c.status.thru);
+          return null;
+        })(),
+        _raw: {
           flag: athlete.flag,
           statistics: c.statistics,
           score: c.score,
