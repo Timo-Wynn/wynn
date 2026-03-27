@@ -2597,15 +2597,17 @@
             ['thru','holesPlayed','holes','holesCompleted','thruHole'].includes(s.name)
           )?.displayValue;
           if (statThru && statThru !== '0') return statThru;
-          // 2. Nested linescores: c.linescores = rounds, each round has .linescores = holes
+          // 2. Nested linescores: outer = rounds, inner = holes played in that round
           const rounds = c.linescores || [];
-          // Find the current/latest round (last one with nested hole data)
-          for (let i = rounds.length - 1; i >= 0; i--) {
-            const holeData = rounds[i]?.linescores;
-            if (holeData && holeData.length > 0) {
-              if (holeData.length >= 18) return 'F';
-              return String(holeData.length);
-            }
+          // Find the current round = last round with holes played but < 18 (in progress)
+          // OR last round with exactly 18 holes (finished)
+          // Players who haven't teed off yet have no round-2 entry → show nothing
+          const currentRound = rounds[rounds.length - 1];
+          if (currentRound) {
+            const holes = currentRound.linescores || [];
+            if (holes.length === 0) return null; // Haven't teed off this round
+            if (holes.length >= 18) return 'F';   // Finished
+            return String(holes.length);           // In progress
           }
           // 3. status.thru fallback
           if (c.status?.thru != null) return String(c.status.thru);
