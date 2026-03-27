@@ -2593,8 +2593,6 @@
         status: c.status?.type?.name || c.status?.type?.shortDetail || null,
         thru:   c.statistics?.find(s => ['thru','holesPlayed','holes','holesCompleted','thruHole'].includes(s.name))?.displayValue
              || c.status?.thru
-             || c.status?.type?.shortDetail?.match(/^(\d+)$/)?.[1]
-             || (c.linescores?.length > 0 ? String(c.linescores.length) : null)
              || null,
         _raw:   {
           flag: athlete.flag,
@@ -2611,12 +2609,14 @@
       players.slice(0,3).forEach(p => {
         console.log(`  ${p.name} | toPar="${p.toPar}" | status="${p.status}" | thru="${p.thru}"`);
         console.log(`    stats:`, p._raw?.statistics?.map(s => s.name + '=' + s.displayValue));
+        console.log(`    linescores length:`, p._raw?.linescores?.length, '| first entry:', JSON.stringify(p._raw?.linescores?.[0]));
         console.log(`    status raw:`, JSON.stringify(p._raw?.status));
-        console.log(`    linescores:`, p._raw?.linescores?.length, p._raw?.linescores?.slice(0,3));
       });
-      // Log first raw competitor keys so we can find thru field
       const firstComp = evt.competitions?.[0]?.competitors?.[0];
-      if (firstComp) console.log('[WYNN] Competitor keys:', Object.keys(firstComp));
+      if (firstComp) {
+        console.log('[WYNN] Competitor keys:', Object.keys(firstComp));
+        console.log('[WYNN] Full first competitor:', JSON.stringify(firstComp).substring(0, 500));
+      }
     }
     return players;
   }
