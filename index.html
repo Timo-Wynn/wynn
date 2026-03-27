@@ -2597,13 +2597,15 @@
             ['thru','holesPlayed','holes','holesCompleted','thruHole'].includes(s.name)
           )?.displayValue;
           if (statThru && statThru !== '0') return statThru;
-          // 2. Linescores with scoreType = hole-level live data (no scoreType = round totals)
-          const holeLs = (c.linescores || []).filter(l => l.scoreType !== undefined && l.scoreType !== null);
-          if (holeLs.length > 0) {
-            // Check if all 18 holes done = "F"
-            const maxHole = Math.max(...holeLs.map(l => l.period || 0));
-            if (holeLs.length >= 18 || maxHole >= 18) return 'F';
-            return String(holeLs.length);
+          // 2. Linescores: hole scores have value 1-8 strokes; round totals have value 60+
+          const holeScores = (c.linescores || []).filter(l => {
+            const v = l.value ?? l.scoreType?.value ?? 999;
+            return v >= 1 && v <= 8;
+          });
+          if (holeScores.length > 0) {
+            const maxHole = Math.max(...holeScores.map(l => l.period || 0));
+            if (holeScores.length >= 18 || maxHole >= 18) return 'F';
+            return String(holeScores.length);
           }
           // 3. status.thru fallback
           if (c.status?.thru != null) return String(c.status.thru);
@@ -2622,16 +2624,11 @@
     if (players.length > 0) {
       console.log('[WYNN] Sample players:');
       players.slice(0,3).forEach(p => {
-        console.log(`  ${p.name} | toPar="${p.toPar}" | status="${p.status}" | thru="${p.thru}"`);
-        console.log(`    stats:`, p._raw?.statistics?.map(s => s.name + '=' + s.displayValue));
-        console.log(`    linescores length:`, p._raw?.linescores?.length, '| first entry:', JSON.stringify(p._raw?.linescores?.[0]));
-        console.log(`    status raw:`, JSON.stringify(p._raw?.status));
+        console.log(`  ${p.name} | toPar="${p.toPar}" | thru="${p.thru}"`);
+        const ls = p._raw?.linescores || [];
+        const holeScores = ls.filter(l => { const v = l.value ?? l.scoreType?.value ?? 999; return v >= 1 && v <= 8; });
+        console.log(`    linescores total=${ls.length} | holeScores=${holeScores.length} | first:`, JSON.stringify(ls[0]));
       });
-      const firstComp = evt.competitions?.[0]?.competitors?.[0];
-      if (firstComp) {
-        console.log('[WYNN] Competitor keys:', Object.keys(firstComp));
-        console.log('[WYNN] Full first competitor:', JSON.stringify(firstComp).substring(0, 500));
-      }
     }
     return players;
   }
