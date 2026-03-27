@@ -2591,9 +2591,10 @@
                || (c.score && c.score !== '0' ? c.score : null)
                || null,
         status: c.status?.type?.name || c.status?.type?.shortDetail || null,
-        thru: c.statistics?.find(s => s.name === 'thru' || s.name === 'holesPlayed')?.displayValue
-           || c.status?.thru
-           || null,
+        thru:   c.statistics?.find(s => ['thru','holesPlayed','holes','holesCompleted','thruHole'].includes(s.name))?.displayValue
+             || c.status?.thru
+             || c.status?.type?.shortDetail?.match(/^(\d+)$/)?.[1]   // e.g. "7" meaning hole 7
+             || null,
         _raw:   {
           flag: athlete.flag,
           statistics: c.statistics,
@@ -2604,14 +2605,12 @@
     }).filter(p => p.name && p.id);
 
     if (players.length > 0) {
-      console.log('[WYNN] Sample players with country data:');
-      players.slice(0,3).forEach(p => {
+      console.log('[WYNN] Sample players:');
+      players.slice(0,5).forEach(p => {
         console.log(`  ${p.name} | toPar="${p.toPar}" | status="${p.status}" | thru="${p.thru}"`);
         console.log(`    stats:`, p._raw?.statistics?.map(s => s.name + '=' + s.displayValue));
+        console.log(`    status raw:`, JSON.stringify(p._raw?.status));
       });
-      const counts = {usa:0,europe:0,row:0};
-      players.forEach(p => counts[p.region]++);
-      console.log('[WYNN] Region counts:', counts);
     }
     return players;
   }
