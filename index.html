@@ -2597,18 +2597,26 @@
             ['thru','holesPlayed','holes','holesCompleted','thruHole'].includes(s.name)
           )?.displayValue;
           if (statThru && statThru !== '0') return statThru;
-          // 2. Determine current round from competition, then find that round's holes
-          const currentPeriod = evt.competitions?.[0]?.period || evt.status?.period || null;
+          // 2. Find in-progress round: has nested holes, count between 1-17
           const rounds = c.linescores || [];
-          // Find the entry for the current round
-          const currentRoundEntry = currentPeriod
-            ? rounds.find(r => r.period === currentPeriod)
-            : rounds[rounds.length - 1];
-          if (!currentRoundEntry) return null;
-          const holes = currentRoundEntry.linescores || [];
-          if (holes.length === 0) return null;  // Not teed off yet this round
-          if (holes.length >= 18) return 'F';
-          return String(holes.length);
+          let inProgress = null, lastFinished = null;
+          for (const r of rounds) {
+            const h = r.linescores?.length ?? 0;
+            if (h > 0 && h < 18) inProgress = h;
+            if (h >= 18) lastFinished = r.period || 0;
+          }
+          // In-progress: show hole count
+          if (inProgress !== null) return String(inProgress);
+          // Check if there's a round AFTER the last finished one with no holes = waiting
+          const periodsWithHoles = rounds.filter(r => (r.linescores?.length ?? 0) > 0).map(r => r.period || 0);
+          const maxPeriodWithHoles = periodsWithHoles.length ? Math.max(...periodsWithHoles) : 0;
+          const totalRounds = rounds.length;
+          // If there's a later round entry with 0 holes = not teed off yet
+          const hasLaterEmptyRound = rounds.some(r => (r.period || 0) > maxPeriodWithHoles && (r.linescores?.length ?? 0) === 0);
+          if (hasLaterEmptyRound) return null;
+          // Otherwise if we have a finished round = show F
+          if (maxPeriodWithHoles > 0) return 'F';
+          return null;
         })(),
         _raw: {
           flag: athlete.flag,
