@@ -2590,7 +2590,11 @@
                || c.statistics?.find(s => s.displayValue && (s.displayValue.startsWith('-') || s.displayValue.startsWith('+') || s.displayValue === 'E'))?.displayValue
                || (c.score && c.score !== '0' ? c.score : null)
                || null,
-        status: c.status?.type?.name || c.status?.type?.shortDetail || null,
+        status: c.status?.type?.name
+             || c.status?.type?.description
+             || c.status?.type?.shortDetail
+             || c.status?.displayValue
+             || null,
         thru: (() => {
           // 1. Try statistics field
           const statThru = c.statistics?.find(s =>
@@ -2630,11 +2634,9 @@
 
     if (players.length > 0) {
       console.log('[WYNN] Sample players:');
-      players.slice(0,3).forEach(p => {
-        console.log(`  ${p.name} | toPar="${p.toPar}" | thru="${p.thru}"`);
-        const ls = p._raw?.linescores || [];
-        const holeScores = ls.filter(l => { const v = l.value ?? l.scoreType?.value ?? 999; return v >= 1 && v <= 8; });
-        console.log(`    linescores total=${ls.length} | holeScores=${holeScores.length} | first:`, JSON.stringify(ls[0]));
+      players.slice(0,5).forEach(p => {
+        console.log(`  ${p.name} | toPar="${p.toPar}" | status="${p.status}" | thru="${p.thru}"`);
+        console.log(`    full status:`, JSON.stringify(p._raw?.status));
       });
     }
     return players;
@@ -2959,7 +2961,9 @@
           const toPar     = scoreData?.toPar ?? null;
           const statusRaw = (scoreData?.status || '').toLowerCase();
           const isCut     = statusRaw === 'cut' || statusRaw === 'wd' || statusRaw === 'mc' ||
-                            statusRaw.includes('cut') || statusRaw.includes('withdraw');
+                            statusRaw === 'missed cut' || statusRaw === 'withdrawn' ||
+                            statusRaw.includes('cut') || statusRaw.includes('withdraw') ||
+                            statusRaw.includes('missed');
           const numScore  = toPar ? parseScore(toPar) : null;
           if (numScore !== null) { total += numScore; hasScore = true; }
           const tagClass  = region === 'usa' ? 'tag-usa' : region === 'europe' ? 'tag-europe' : 'tag-row';
