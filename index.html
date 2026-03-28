@@ -2960,10 +2960,12 @@
           const scoreData = window._group.scores[pick.id];
           const toPar     = scoreData?.toPar ?? null;
           const statusRaw = (scoreData?.status || '').toLowerCase();
+          const toParRaw  = (scoreData?.toPar  || '').toUpperCase();
           const isCut     = statusRaw === 'cut' || statusRaw === 'wd' || statusRaw === 'mc' ||
                             statusRaw === 'missed cut' || statusRaw === 'withdrawn' ||
                             statusRaw.includes('cut') || statusRaw.includes('withdraw') ||
-                            statusRaw.includes('missed');
+                            statusRaw.includes('missed') ||
+                            toParRaw === 'CUT' || toParRaw === 'MC' || toParRaw === 'WD';
           const numScore  = toPar ? parseScore(toPar) : null;
           if (numScore !== null) { total += numScore; hasScore = true; }
           const tagClass  = region === 'usa' ? 'tag-usa' : region === 'europe' ? 'tag-europe' : 'tag-row';
@@ -3515,7 +3517,9 @@
     let pos = 1;
     const rows = sorted.map((p, i) => {
       const sr = (p.status || '').toLowerCase();
-      const isCut = sr === 'cut' || sr === 'wd' || sr === 'mc' || sr.includes('cut') || sr.includes('withdraw');
+      const tp = (p.toPar  || '').toUpperCase();
+      const isCut = sr === 'cut' || sr === 'wd' || sr === 'mc' || sr.includes('cut') || sr.includes('withdraw') ||
+                    tp === 'CUT' || tp === 'MC' || tp === 'WD';
       const isPicked = pickedIds.has(p.id);
       const sn = parseScore(p.toPar);
       if (!isCut && (i === 0 || parseScore(sorted[i-1]?.toPar) !== sn)) pos = i + 1;
