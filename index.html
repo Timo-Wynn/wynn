@@ -1063,14 +1063,14 @@
     .lb-pick-left .pick-player { font-weight: 600; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .lb-pick-left .pick-player.cut { color: var(--text-light); text-decoration: line-through; }
     .lb-pick-left .pick-country-small { font-size: 11px; color: var(--text-light); display: flex; align-items: center; gap: 4px; }
-    .lb-pick-right { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+    .lb-pick-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
     .lb-pick-row .pick-region-tag { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 20px; text-transform: uppercase; flex-shrink: 0; }
     .tag-usa    { background: #FFE8E8; color: #B22234; }
     .tag-europe { background: #E8ECFF; color: #003399; }
     .tag-row    { background: var(--green-subtle); color: var(--green-mid); }
-    .lb-pick-row .pick-score-val { font-weight: 700; color: var(--green); }
-    .lb-pick-row .pick-score-val.cut { color: var(--text-light); }
-    .lb-pick-row .pick-thru { font-size: 11px; color: var(--text-light); min-width: 22px; text-align: right; }
+    .lb-pick-row .pick-score-total { font-family: 'Playfair Display', serif; font-weight: 900; font-size: 15px; color: var(--green); min-width: 34px; text-align: right; }
+    .lb-pick-row .pick-score-today { font-size: 11px; color: var(--text-light); min-width: 28px; text-align: right; }
+    .lb-pick-row .pick-thru { font-size: 11px; color: var(--text-light); min-width: 26px; text-align: right; }
     .golf-lb-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--cream-dark); font-size: 13px; }
     .golf-lb-item:last-child { border-bottom: none; }
     .golf-lb-pos { min-width: 30px; font-weight: 700; color: var(--text-light); text-align: center; font-size: 12px; flex-shrink: 0; }
@@ -2596,30 +2596,46 @@
              || c.status?.displayValue
              || null,
         thru: (() => {
-          // 1. Try statistics field
           const statThru = c.statistics?.find(s =>
             ['thru','holesPlayed','holes','holesCompleted','thruHole'].includes(s.name)
           )?.displayValue;
           if (statThru && statThru !== '0') return statThru;
-          // 2. Find in-progress round: has nested holes, count between 1-17
           const rounds = c.linescores || [];
-          let inProgress = null, lastFinished = null;
+          let inProgress = null;
           for (const r of rounds) {
             const h = r.linescores?.length ?? 0;
             if (h > 0 && h < 18) inProgress = h;
-            if (h >= 18) lastFinished = r.period || 0;
           }
-          // In-progress: show hole count
           if (inProgress !== null) return String(inProgress);
-          // Check if there's a round AFTER the last finished one with no holes = waiting
           const periodsWithHoles = rounds.filter(r => (r.linescores?.length ?? 0) > 0).map(r => r.period || 0);
           const maxPeriodWithHoles = periodsWithHoles.length ? Math.max(...periodsWithHoles) : 0;
-          const totalRounds = rounds.length;
-          // If there's a later round entry with 0 holes = not teed off yet
           const hasLaterEmptyRound = rounds.some(r => (r.period || 0) > maxPeriodWithHoles && (r.linescores?.length ?? 0) === 0);
           if (hasLaterEmptyRound) return null;
-          // Otherwise if we have a finished round = show F
           if (maxPeriodWithHoles > 0) return 'F';
+          return null;
+        })(),
+        today: (() => {
+          // Today's score = displayValue of the current active round in linescores
+          const rounds = c.linescores || [];
+          // Find the round that is in-progress (has holes but < 18)
+          const activeRound = rounds.find(r => {
+            const h = r.linescores?.length ?? 0;
+            return h > 0 && h < 18;
+          });
+          if (activeRound) return activeRound.displayValue || null;
+          // If no in-progress round, check for round started today (has holes = 18, latest period)
+          // Don't show "today" for players waiting to tee off
+          const periodsWithHoles = rounds.filter(r => (r.linescores?.length ?? 0) > 0);
+          const hasLaterEmpty = rounds.some(r => {
+            const maxP = periodsWithHoles.length ? Math.max(...periodsWithHoles.map(x => x.period || 0)) : 0;
+            return (r.period || 0) > maxP && (r.linescores?.length ?? 0) === 0;
+          });
+          if (hasLaterEmpty) return null; // Waiting to tee off
+          // Finished their round - find the latest completed one
+          if (periodsWithHoles.length > 0) {
+            const latest = periodsWithHoles.reduce((a, b) => (a.period || 0) > (b.period || 0) ? a : b);
+            return latest.displayValue || null;
+          }
           return null;
         })(),
         _raw: {
@@ -2720,7 +2736,7 @@
           window._group.espnTournamentName = evt.name || evt.shortName || '';
           window._group.players = parseESPNPlayers(evt);
           window._group.scores  = {};
-          window._group.players.forEach(p => { window._group.scores[p.id] = { toPar: p.toPar, status: p.status, thru: p.thru }; });
+          window._group.players.forEach(p => { window._group.scores[p.id] = { toPar: p.toPar, status: p.status, thru: p.thru, today: p.today }; });
           await update(ref(db, `groups/${window._group.id}/tournamentScores`), window._group.scores);
           const nowTs = Date.now();
           await update(ref(db, `groups/${window._group.id}`), { scoresLastUpdated: nowTs });
@@ -2970,8 +2986,9 @@
           if (numScore !== null) { total += numScore; hasScore = true; }
           const tagClass  = region === 'usa' ? 'tag-usa' : region === 'europe' ? 'tag-europe' : 'tag-row';
           const tagLabel  = region === 'usa' ? 'USA' : region === 'europe' ? 'EUR' : 'RoW';
-          const thru = scoreData?.thru || null;
-          pickRows.push({ name: pick.name, country: pick.country, region, tagClass, tagLabel, toPar, isCut, thru });
+          const thru  = scoreData?.thru  || null;
+          const today = scoreData?.today || null;
+          pickRows.push({ name: pick.name, country: pick.country, region, tagClass, tagLabel, toPar, isCut, thru, today });
         });
         if (hasScore) totalScore = total;
       }
@@ -3010,17 +3027,20 @@
       const pickDetail = (locked && e.pickRows.length) ? `
         <div class="lb-picks-detail">
           ${e.pickRows.map(p => {
-            const thruStr = p.isCut ? '' :
+            const thruStr = p.isCut ? '✂️' :
               (p.thru === 'F' || Number(p.thru) >= 18) ? 'F' :
               (p.thru && p.thru !== '0') ? `/${p.thru}` : '';
+            const todayStr = p.isCut ? '' : (p.today && p.today !== '0' ? formatScore(p.today) : '');
+            const totalStr = p.isCut ? '<span style="color:var(--text-light)">✂️</span>' : (p.toPar ? formatScore(p.toPar) : '—');
             return `<div class="lb-pick-row">
               <div class="lb-pick-left">
-                <span class="pick-player${p.isCut?' cut':''}">${escHtml(p.name)}${p.isCut?' ✂️':''}</span>
+                <span class="pick-player${p.isCut?' cut':''}">${escHtml(p.name)}</span>
                 <span class="pick-country-small">${escHtml(p.country)} · <span class="pick-region-tag ${p.tagClass}">${p.tagLabel}</span></span>
               </div>
               <div class="lb-pick-right">
-                <span class="pick-score-val${p.isCut?' cut':''}">${p.toPar ? formatScore(p.toPar) : '—'}</span>
-                ${thruStr ? `<span class="pick-thru">${thruStr}</span>` : ''}
+                <span class="pick-score-total">${totalStr}</span>
+                <span class="pick-score-today">${todayStr}</span>
+                <span class="pick-thru">${thruStr}</span>
               </div>
             </div>`;
           }).join('')}
