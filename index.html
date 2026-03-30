@@ -2390,7 +2390,7 @@
 
     const fmt = window._group.data.format;
     document.querySelectorAll('.gs-history-tab').forEach(t => t.classList.toggle('hidden', fmt === 'single'));
-    document.querySelectorAll('.gs-season-tab').forEach(t => t.classList.toggle('hidden', fmt !== 'season'));
+    document.querySelectorAll('.gs-season-tab').forEach(t => t.classList.toggle('hidden', fmt !== 'season' && fmt !== 'major_slam'));
     if (fmt === 'season') renderHistory();
   };
 
@@ -2471,8 +2471,13 @@
     if (g.format === 'single') {
       // Single: active as long as tournament has NOT been ended (tournamentEnded flag)
       hasActive = !g.tournamentEnded;
+    } else if (g.format === 'major_slam') {
+      // Major Slam: active as long as not all tournaments are completed
+      const mIdx = g.currentTournamentIndex || 0;
+      const mLen = (g.majorTournaments || Array(5)).length;
+      hasActive = mIdx < mLen && !g.activeTournament?.completed;
     } else {
-      // Season / Major Slam: active if activeTournament exists and not completed
+      // Season: active if activeTournament exists and not completed
       hasActive = !!(g.activeTournament && !g.activeTournament.completed);
     }
 
@@ -2667,7 +2672,16 @@
 
     if (count > 0) {
       const espnName    = window._group.espnTournamentName || '';
-      const activeName  = window._group.data?.activeTournament?.name || window._group.data?.tournament?.name || '';
+      let activeName = window._group.data?.activeTournament?.name || window._group.data?.tournament?.name || '';
+      if (!activeName && window._group.data?.format === 'major_slam') {
+        const _gd = window._group.data;
+        const _idx = _gd.currentTournamentIndex || 0;
+        const _majors = _gd.majorTournaments || [
+          {name:'The Masters'},{name:'PGA Championship'},{name:'U.S. Open'},
+          {name:'The Open Championship'},{name:'FedEx Cup Playoffs'}
+        ];
+        activeName = _majors[_idx]?.name || '';
+      }
 
 // Normalize for comparison: lowercase, strip punctuation
 const STOP = new Set(['open','tour','pga','cup','golf','classic','invitational','championship','tournament','presented','memorial','annual','series']);
@@ -3567,6 +3581,121 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
     const g    = window._group.data;
     const el   = document.getElementById('gs-season-standings');
     if (!el) return;
+
+    // ── Major Slam: show the tournament-by-tournament grid ──────────
+    if (g.format === 'major_slam') {
+      const majors = g.majorTournaments || [
+        {id:'masters',        name:'The Masters'},
+        {id:'pga-champ',      name:'PGA Championship'},
+        {id:'us-open',        name:'U.S. Open'},
+        {id:'the-open',       name:'The Open Championship'},
+        {id:'fedex',          name:'FedEx Cup Playoffs'},
+      ];
+      const shortNames = ['Masters','PGA','US Open','The Open','FedEx'];
+      const currentIdx = g.currentTournamentIndex || 0;
+
+      const [histSnap, membersSnap] = await Promise.all([
+        get(ref(db, `groups/${gid}/history`)),
+        Promise.all(Object.keys(g.members || {}).map(async uid => {
+          const uSnap = await get(ref(db, `users/${uid}`));
+          return { uid, name: uSnap.exists() ? uSnap.val().name : 'Unknown' };
+        }))
+      ]);
+      const history = histSnap.exists() ? histSnap.val() : {};
+
+      // Collect all uids that appear in any result (catches non-members too)
+      const allUids = new Set(membersSnap.map(m => m.uid));
+      Object.values(history).forEach(t => (t.results||[]).forEach(r => allUids.add(r.uid)));
+      const nameMap = {};
+      membersSnap.forEach(m => nameMap[m.uid] = m.name);
+      // Fill in names from history for anyone not in members
+      Object.values(history).forEach(t => (t.results||[]).forEach(r => {
+        if (!nameMap[r.uid]) nameMap[r.uid] = r.name || 'Unknown';
+      }));
+
+      const uids = [...allUids];
+
+      // Build grid data: for each uid, for each major, get their rank + score
+      function getMajorResult(majorId, uid) {
+        const t = history[majorId];
+        if (!t?.results) return null;
+        const scored = t.results.filter(r => r.total !== null).sort((a,b) => a.total - b.total);
+        const idx = scored.findIndex(r => r.uid === uid);
+        if (idx === -1) return null;
+        const isFirst = idx === 0;
+        const isLast  = idx === scored.length - 1 && scored.length > 1 && scored[idx].total !== scored[0].total;
+        return { rank: idx + 1, total: scored[idx].total, isFirst, isLast };
+      }
+
+      function cellHtml(majorId, uid, majorIdx) {
+        const isPast = majorIdx < currentIdx;
+        const isActiveNow = majorIdx === currentIdx;
+        if (!isPast && !isActiveNow) {
+          return `<td style="text-align:center;padding:8px 4px;font-size:12px;color:var(--text-light);">—</td>`;
+        }
+        const r = getMajorResult(majorId, uid);
+        if (!r) {
+          return `<td style="text-align:center;padding:8px 4px;font-size:12px;color:var(--text-light);">${isActiveNow ? '🔄' : '—'}</td>`;
+        }
+        const scoreStr = r.total > 0 ? `+${r.total}` : r.total === 0 ? 'E' : String(r.total);
+        const emoji = r.isFirst ? '👑' : r.isLast ? '💩' : '';
+        const scoreColor = r.total < 0 ? 'var(--success)' : r.total > 0 ? 'var(--error)' : 'var(--text-mid)';
+        return `<td style="text-align:center;padding:8px 4px;">
+          <div style="font-size:13px;font-weight:700;">${r.rank}. ${emoji}</div>
+          <div style="font-size:11px;font-weight:600;color:${scoreColor};">(${scoreStr})</div>
+        </td>`;
+      }
+
+      // Count wins & poops per uid for sorting
+      const stats = {};
+      uids.forEach(uid => {
+        let wins = 0, poops = 0;
+        majors.forEach((m, mi) => {
+          if (mi >= currentIdx) return;
+          const r = getMajorResult(m.id, uid);
+          if (r?.isFirst) wins++;
+          if (r?.isLast)  poops++;
+        });
+        stats[uid] = { wins, poops };
+      });
+      uids.sort((a, b) => stats[b].wins - stats[a].wins || stats[a].poops - stats[b].poops || (nameMap[a]||'').localeCompare(nameMap[b]||''));
+
+      el.innerHTML = `
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+          <table style="width:100%;border-collapse:collapse;min-width:400px;">
+            <thead>
+              <tr style="border-bottom:2px solid var(--cream-deeper);">
+                <th style="text-align:left;padding:8px 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-light);min-width:90px;">Spieler</th>
+                ${majors.map((m, mi) => {
+                  const isActive = mi === currentIdx;
+                  const isPast = mi < currentIdx;
+                  return `<th style="text-align:center;padding:8px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:${isActive ? 'var(--green)' : isPast ? 'var(--text-mid)' : 'var(--text-light)'};white-space:nowrap;">
+                    ${isActive ? '🟢 ' : ''}${shortNames[mi]}
+                  </th>`;
+                }).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${uids.map((uid, ri) => `
+                <tr style="border-bottom:1px solid var(--cream-dark);${ri % 2 === 0 ? 'background:rgba(245,240,232,0.4);' : ''}">
+                  <td style="padding:8px 10px;">
+                    <div style="font-weight:700;font-size:13px;">${escHtml(nameMap[uid] || 'Unknown')}</div>
+                    <div style="font-size:10px;color:var(--text-light);">
+                      ${stats[uid].wins ? `👑 ${stats[uid].wins}` : ''}${stats[uid].wins && stats[uid].poops ? ' · ' : ''}${stats[uid].poops ? `💩 ${stats[uid].poops}` : ''}
+                    </div>
+                  </td>
+                  ${majors.map((m, mi) => cellHtml(m.id, uid, mi)).join('')}
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:12px;font-size:11px;color:var(--text-light);text-align:center;">
+          Platz · (Score) · 👑 Gewonnen · 💩 Letzter
+        </div>
+      `;
+      return;
+    }
+    // ── END Major Slam ───────────────────────────────────────────────
 
     const [spSnap, histSnap] = await Promise.all([
       get(ref(db, `groups/${gid}/seasonPoints`)),
