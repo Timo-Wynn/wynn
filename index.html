@@ -2322,25 +2322,25 @@
   };
 
   window.openGroup = async (gid) => {
-    // Clear all group UI immediately — before any async fetch — so stale data
-    // from a previously-opened group never shows while the new group loads.
-    const loadingHTML = '<div class="empty-state"><div class="spinner" style="margin:0 auto 12px;"></div><p>Loading…</p></div>';
-    ['gs-leaderboard-list','gs-members-list','gs-picks-list',
-     'gs-golf-leaderboard-list','gs-history-list','gs-season-list'].forEach(id => {
+    const snap = await get(ref(db, `groups/${gid}`));
+    if (!snap.exists()) { showToast('Group not found.', 'error'); return; }
+    window._group.id   = gid;
+    window._group.data = JSON.parse(JSON.stringify(snap.val()));
+    window._group.myPicks = { usa: null, europe: null, row: null };
+    window._group.scores  = {};
+
+    // Sofort alle Listen leeren damit keine Daten der vorherigen Gruppe sichtbar sind
+    const _ph = '<div class="empty-state"><p>Wird geladen…</p></div>';
+    ['gs-leaderboard-list','gs-members-list','gs-golf-leaderboard-list',
+     'gs-history-list','gs-season-list'].forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.innerHTML = loadingHTML;
+      if (el) el.innerHTML = _ph;
     });
 
     ['home','profile','admin'].forEach(p => {
       document.getElementById(`page-${p}`).classList.add('hidden');
     });
     document.getElementById('page-group').classList.add('active');
-
-    const snap = await get(ref(db, `groups/${gid}`));
-    if (!snap.exists()) { showToast('Group not found.', 'error'); return; }
-    window._group.id   = gid;
-    window._group.data = JSON.parse(JSON.stringify(snap.val()));
-    window._group.myPicks = { usa: null, europe: null, row: null };
     ['home','profile','admin'].forEach(p => {
       const b = document.getElementById(`nav-${p}`);
       if (b) b.classList.remove('active');
@@ -2958,7 +2958,10 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
     }
   };
 
-.currentUser?.uid || '';
+  async function renderLeaderboard() {
+    try {
+    const gid     = window._group.id;
+    const uid     = auth.currentUser?.uid || '';
     const list    = document.getElementById('gs-leaderboard-list');
     if (!gid || !list) return;
     let snap;
