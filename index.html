@@ -3100,6 +3100,9 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
     const members = g.members || {};
     const list    = document.getElementById('gs-members-list');
 
+    // Clear immediately so stale members from a previous group don't show
+    list.innerHTML = '<div class="empty-state"><p>Loading members...</p></div>';
+
     const entries = await Promise.all(Object.keys(members).map(async memberId => {
       const snap = await get(ref(db, `users/${memberId}`));
       return { uid: memberId, ...(snap.exists() ? snap.val() : { name: 'Unknown' }) };
