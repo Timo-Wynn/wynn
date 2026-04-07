@@ -1398,7 +1398,7 @@
         <button class="group-tab" onclick="switchGroupTab('picks')">My Picks</button>
         <button class="group-tab" onclick="switchGroupTab('members')">Members</button>
         <button class="group-tab gs-history-tab hidden" onclick="switchGroupTab('history')">History</button>
-        <button class="group-tab gs-season-tab hidden" onclick="switchGroupTab('season')">Saison</button>
+        <button class="group-tab gs-season-tab hidden" onclick="switchGroupTab('season')">Season</button>
       </div>
 
       <!-- Tab: Leaderboard -->
@@ -1861,14 +1861,15 @@
   };
 
   const PGA_SCHEDULE_2026 = [
-    { id: 'sony-open-2026',        name: 'Sony Open in Hawaii',             date: '2026-01-08' },
-    { id: 'american-express-2026', name: 'The American Express',            date: '2026-01-15' },
-    { id: 'farmers-2026',          name: 'Farmers Insurance Open',          date: '2026-01-22' },
-    { id: 'att-pebble-2026',       name: 'AT&T Pebble Beach Pro-Am',        date: '2026-02-05' },
+    { id: 'sony-open-2026',        name: 'Sony Open in Hawaii',             date: '2026-01-15' },
+    { id: 'american-express-2026', name: 'The American Express',            date: '2026-01-22' },
+    { id: 'farmers-2026',          name: 'Farmers Insurance Open',          date: '2026-01-29' },
     { id: 'wm-phoenix-2026',       name: 'WM Phoenix Open',                 date: '2026-02-05' },
+    { id: 'att-pebble-2026',       name: 'AT&T Pebble Beach Pro-Am',        date: '2026-02-12' },
     { id: 'genesis-inv-2026',      name: 'Genesis Invitational',            date: '2026-02-19' },
     { id: 'cognizant-2026',        name: 'Cognizant Classic',               date: '2026-02-26' },
     { id: 'arnold-palmer-2026',    name: 'Arnold Palmer Invitational',      date: '2026-03-05' },
+    { id: 'puerto-rico-2026',      name: 'Puerto Rico Open',                date: '2026-03-05' },
     { id: 'players-2026',          name: 'The Players Championship',        date: '2026-03-12' },
     { id: 'valspar-2026',          name: 'Valspar Championship',            date: '2026-03-19' },
     { id: 'texas-childrens-2026',  name: "Texas Children's Houston Open",   date: '2026-03-26' },
@@ -1876,18 +1877,23 @@
     { id: 'masters-2026',          name: 'The Masters',                     date: '2026-04-09' },
     { id: 'rbc-heritage-2026',     name: 'RBC Heritage',                    date: '2026-04-16' },
     { id: 'zurich-2026',           name: 'Zurich Classic of New Orleans',   date: '2026-04-23' },
-    { id: 'wells-fargo-2026',      name: 'Wells Fargo Championship',        date: '2026-05-07' },
+    { id: 'cadillac-2026',         name: 'Cadillac Championship',           date: '2026-04-30' },
+    { id: 'truist-2026',           name: 'Truist Championship',             date: '2026-05-07' },
+    { id: 'myrtle-beach-2026',     name: 'ONEflight Myrtle Beach Classic',  date: '2026-05-07' },
     { id: 'pga-champ-2026',        name: 'PGA Championship',                date: '2026-05-14' },
-    { id: 'charles-schwab-2026',   name: 'Charles Schwab Challenge',        date: '2026-05-21' },
-    { id: 'rbc-canadian-2026',     name: 'RBC Canadian Open',               date: '2026-05-28' },
+    { id: 'cj-cup-2026',           name: 'CJ Cup Byron Nelson',             date: '2026-05-21' },
+    { id: 'charles-schwab-2026',   name: 'Charles Schwab Challenge',        date: '2026-05-28' },
     { id: 'memorial-2026',         name: 'The Memorial Tournament',         date: '2026-06-04' },
+    { id: 'rbc-canadian-2026',     name: 'RBC Canadian Open',               date: '2026-06-11' },
     { id: 'us-open-2026',          name: 'U.S. Open',                       date: '2026-06-18' },
     { id: 'travelers-2026',        name: 'Travelers Championship',          date: '2026-06-25' },
-    { id: 'rocket-2026',           name: 'Rocket Mortgage Classic',         date: '2026-07-02' },
-    { id: 'john-deere-2026',       name: 'John Deere Classic',              date: '2026-07-09' },
+    { id: 'john-deere-2026',       name: 'John Deere Classic',              date: '2026-07-02' },
     { id: 'genesis-scottish-2026', name: 'Genesis Scottish Open',           date: '2026-07-09' },
+    { id: 'isco-2026',             name: 'ISCO Championship',               date: '2026-07-09' },
     { id: 'the-open-2026',         name: 'The Open Championship',           date: '2026-07-16' },
-    { id: 'barracuda-2026',        name: 'Barracuda Championship',          date: '2026-07-16' },
+    { id: 'puntacana-2026',        name: 'Corales Puntacana Championship',  date: '2026-07-16' },
+    { id: '3m-open-2026',          name: '3M Open',                         date: '2026-07-23' },
+    { id: 'rocket-2026',           name: 'Rocket Classic',                  date: '2026-07-30' },
     { id: 'wyndham-2026',          name: 'Wyndham Championship',            date: '2026-08-06' },
     { id: 'fedex-st-jude-2026',    name: 'FedEx St. Jude Championship',     date: '2026-08-13' },
     { id: 'bmw-2026',              name: 'BMW Championship',                date: '2026-08-20' },
@@ -3823,9 +3829,11 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
     if (addSection) addSection.classList.toggle('hidden', g.format !== 'season' || !isOwner);
 
     function rankRows(results) {
-      const scored = (results || []).filter(r => r.total !== null).sort((a,b) => a.total - b.total);
-      if (!scored.length) return '';
-      return scored.map((r, i) => {
+      const all    = results || [];
+      const scored = all.filter(r => r.total !== null && r.total !== undefined && !isNaN(r.total)).sort((a,b) => a.total - b.total);
+      const dnp    = all.filter(r => r.total === null || r.total === undefined || isNaN(r.total));
+      if (!scored.length && !dnp.length) return '';
+      const rows = scored.map((r, i) => {
         const isFirst = i === 0;
         const isLast  = i === scored.length-1 && scored.length > 1 && r.total !== scored[0].total;
         const sign    = isFirst ? '👑' : (isLast ? '💩' : `${i+1}.`);
@@ -3838,6 +3846,15 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
           <span style="font-weight:700;color:${color};">${scoreStr}</span>
         </div>`;
       }).join('');
+      const dnpRows = dnp.length ? `
+        <div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--border);">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-light);margin-bottom:4px;">Did not play</div>
+          ${dnp.map(r => `<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin-top:4px;">
+            <span style="min-width:22px;text-align:center;color:var(--text-light);">—</span>
+            <span style="flex:1;color:var(--text-light);">${escHtml(r.name)}</span>
+          </div>`).join('')}
+        </div>` : '';
+      return rows + dnpRows;
     }
 
     if (g.format === 'season') {
