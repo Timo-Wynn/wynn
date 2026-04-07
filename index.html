@@ -2586,6 +2586,14 @@
 
   function parseESPNPlayers(evt) {
     const comps = evt.competitions?.[0]?.competitors || [];
+
+    // Cut is drawn once any player has round-3 data (tee time or hole scores)
+    const cutHasBeenDrawn = comps.some(c =>
+      (c.linescores || []).some(r =>
+        (r.period || 0) >= 3 && ((r.linescores?.length ?? 0) > 0 || r.startTime || r.teeTime)
+      )
+    );
+
     const players = comps.map(c => {
       const athlete = c.athlete || {};
       const flag = athlete.flag || athlete.countryFlag || c.countryFlag || {};
@@ -2600,11 +2608,28 @@
         athlete.country ||
         flagCode ||
         '';
+      // Detect cut from status + toPar fields
+      const statusRawParse = [
+        c.status?.type?.name, c.status?.type?.description,
+        c.status?.type?.shortDetail, c.status?.displayValue,
+      ].filter(Boolean).join(' ').toLowerCase();
+      const toParRawParse = (
+        c.statistics?.find(s => s.name==='toPar')?.displayValue ||
+        c.statistics?.find(s => s.name==='scoreToPar')?.displayValue ||
+        c.score || ''
+      ).toUpperCase();
+      const isCutPlayer = statusRawParse.includes('cut') || statusRawParse.includes('mc') ||
+                          statusRawParse.includes('wd') || statusRawParse.includes('withdraw') ||
+                          statusRawParse.includes('missed') || statusRawParse.includes('disqualif') ||
+                          toParRawParse === 'CUT' || toParRawParse === 'MC' ||
+                          toParRawParse === 'WD' || toParRawParse === 'DQ';
+
       return {
         id:     String(athlete.id || c.id || ''),
         name:   athlete.displayName || c.displayName || '',
         country,
         region: getRegion(country),
+        isCut:  isCutPlayer,
         toPar:  c.statistics?.find(s => s.name==='toPar')?.displayValue
                || c.statistics?.find(s => s.name==='scoreToPar')?.displayValue
                || c.statistics?.find(s => s.displayValue && (s.displayValue.startsWith('-') || s.displayValue.startsWith('+') || s.displayValue === 'E'))?.displayValue
@@ -2616,22 +2641,33 @@
              || c.status?.displayValue
              || null,
         thru: (() => {
-          const statThru = c.statistics?.find(s =>
-            ['thru','holesPlayed','holes','holesCompleted','thruHole'].includes(s.name)
-          )?.displayValue;
-          if (statThru && statThru !== '0') return statThru;
           const rounds = c.linescores || [];
-          let inProgress = null;
+
+          // ✂️ Cut: only mark after cut is officially drawn (round 3 data exists)
+          if (isCutPlayer && cutHasBeenDrawn) return '✂️';
+
+          // /N: Player currently on the course (in-progress round)
           for (const r of rounds) {
             const h = r.linescores?.length ?? 0;
-            if (h > 0 && h < 18) inProgress = h;
+            if (h > 0 && h < 18) return String(h);
           }
-          if (inProgress !== null) return String(inProgress);
+
+          // F: Player finished their round for the day
           const periodsWithHoles = rounds.filter(r => (r.linescores?.length ?? 0) > 0).map(r => r.period || 0);
           const maxPeriodWithHoles = periodsWithHoles.length ? Math.max(...periodsWithHoles) : 0;
           const hasLaterEmptyRound = rounds.some(r => (r.period || 0) > maxPeriodWithHoles && (r.linescores?.length ?? 0) === 0);
-          if (hasLaterEmptyRound) return null;
-          if (maxPeriodWithHoles > 0) return 'F';
+          if (!hasLaterEmptyRound && maxPeriodWithHoles > 0) return 'F';
+
+          // HH:MM: Player hasn't teed off yet — show tee time if available
+          const nextRound = rounds.find(r => (r.linescores?.length ?? 0) === 0 && (r.startTime || r.teeTime));
+          const teeTimeRaw = nextRound?.startTime || nextRound?.teeTime || c.teeTime || null;
+          if (teeTimeRaw) {
+            try {
+              const d = new Date(teeTimeRaw);
+              if (!isNaN(d)) return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+            } catch(e) {}
+          }
+
           return null;
         })(),
         today: (() => {
@@ -2767,7 +2803,7 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
           window._group.espnTournamentName = evt.name || evt.shortName || '';
           window._group.players = parseESPNPlayers(evt);
           window._group.scores  = {};
-          window._group.players.forEach(p => { window._group.scores[p.id] = { toPar: p.toPar, status: p.status, thru: p.thru, today: p.today }; });
+          window._group.players.forEach(p => { window._group.scores[p.id] = { toPar: p.toPar, status: p.status, thru: p.thru, today: p.today, isCut: p.isCut }; });
           await update(ref(db, `groups/${window._group.id}/tournamentScores`), window._group.scores);
           const nowTs = Date.now();
           await update(ref(db, `groups/${window._group.id}`), { scoresLastUpdated: nowTs });
@@ -3008,7 +3044,8 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
           const toPar     = scoreData?.toPar ?? null;
           const statusRaw = (scoreData?.status || '').toLowerCase();
           const toParRaw  = (scoreData?.toPar  || '').toUpperCase();
-          const isCut     = statusRaw === 'cut' || statusRaw === 'wd' || statusRaw === 'mc' ||
+          const isCut     = scoreData?.isCut === true ||
+                            statusRaw === 'cut' || statusRaw === 'wd' || statusRaw === 'mc' ||
                             statusRaw === 'missed cut' || statusRaw === 'withdrawn' ||
                             statusRaw.includes('cut') || statusRaw.includes('withdraw') ||
                             statusRaw.includes('missed') ||
@@ -3058,9 +3095,8 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
       const pickDetail = (locked && e.pickRows.length) ? `
         <div class="lb-picks-detail">
           ${e.pickRows.map(p => {
-            const thruStr = p.isCut ? '✂️' :
-              (p.thru === 'F' || Number(p.thru) >= 18) ? 'F' :
-              (p.thru && p.thru !== '0') ? `/${p.thru}` : '';
+            // thru is pre-formatted in parseESPNPlayers: ✂️ / F / /N / HH:MM
+            const thruStr = p.thru || '';
             const todayStr = p.isCut ? '' : (p.today && p.today !== '0' ? formatScore(p.today) : '');
             const totalStr = p.isCut ? '<span style="color:var(--text-light)">✂️</span>' : (p.toPar ? formatScore(p.toPar) : '—');
             return `<div class="lb-pick-row">
@@ -3339,7 +3375,7 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
         if (evt && evt.competitions?.[0]?.competitors?.length > 0) {
           const players = parseESPNPlayers(evt);
           window._group.scores = {};
-          players.forEach(p => { window._group.scores[p.id] = { toPar: p.toPar, status: p.status }; });
+          players.forEach(p => { window._group.scores[p.id] = { toPar: p.toPar, status: p.status, isCut: p.isCut }; });
           await update(ref(db, `groups/${window._group.id}/tournamentScores`), window._group.scores);
           showToast('Final scores loaded from ESPN ✓', 'success');
         } else {
@@ -3572,14 +3608,16 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
     const rows = sorted.map((p, i) => {
       const sr = (p.status || '').toLowerCase();
       const tp = (p.toPar  || '').toUpperCase();
-      const isCut = sr === 'cut' || sr === 'wd' || sr === 'mc' || sr.includes('cut') || sr.includes('withdraw') ||
+      const isCut = p.isCut === true || sr === 'cut' || sr === 'wd' || sr === 'mc' ||
+                    sr.includes('cut') || sr.includes('withdraw') ||
                     tp === 'CUT' || tp === 'MC' || tp === 'WD';
       const isPicked = pickedIds.has(p.id);
       const sn = parseScore(p.toPar);
       if (!isCut && (i === 0 || parseScore(sorted[i-1]?.toPar) !== sn)) pos = i + 1;
       const isTied   = !isCut && i > 0 && parseScore(sorted[i-1]?.toPar) === sn;
       const posLabel = isCut ? 'CUT' : (isTied ? `T${pos}` : String(pos));
-      const thruStr  = isCut ? '✂️' : (p.thru === 'F' || Number(p.thru) >= 18) ? 'F' : (p.thru && p.thru !== '0') ? `/${p.thru}` : '';
+      // thru is pre-formatted in parseESPNPlayers: ✂️ / F / /N / HH:MM
+      const thruStr  = p.thru || '';
       return `<div class="golf-lb-item${isPicked?' my-pick':''}">
         <span class="golf-lb-pos">${posLabel}</span>
         <div style="flex:1;min-width:0;">
