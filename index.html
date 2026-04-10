@@ -2809,15 +2809,22 @@
           score: c.score,
           status: c.status,
           linescores: c.linescores,
+          teeTime: c.teeTime,
         }
       };
     }).filter(p => p.name && p.id);
 
     if (players.length > 0) {
-      console.log('[WYNN] Sample players:');
+      console.log("[WYNN] Sample players:");
       players.slice(0,5).forEach(p => {
-        console.log(`  ${p.name} | toPar="${p.toPar}" | status="${p.status}" | thru="${p.thru}"`);
-        console.log(`    full status:`, JSON.stringify(p._raw?.status));
+        console.log(`  ${p.name} | toPar="${p.toPar}" | status="${p.status}" | thru="${p.thru}" | today="${p.today}"`);
+        const raw = p._raw;
+        if (raw) {
+          const rounds = raw.linescores || [];
+          console.log("    rounds:", rounds.map(r => ({period: r.period, holes: r.linescores?.length, startTime: r.startTime, teeTime: r.teeTime, displayValue: r.displayValue})));
+          console.log("    c.teeTime:", raw.teeTime);
+          console.log("    full status:", JSON.stringify(raw.status));
+        }
       });
     }
     return players;
@@ -3484,7 +3491,7 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
         if (evt && evt.competitions?.[0]?.competitors?.length > 0) {
           const players = parseESPNPlayers(evt);
           window._group.scores = {};
-          players.forEach(p => { window._group.scores[p.id] = { toPar: p.toPar, status: p.status, isCut: p.isCut }; });
+          players.forEach(p => { window._group.scores[p.id] = { toPar: p.toPar, status: p.status, thru: p.thru, today: p.today, isCut: p.isCut }; });
           await update(ref(db, `groups/${window._group.id}/tournamentScores`), window._group.scores);
           showToast('Final scores loaded from ESPN ✓', 'success');
         } else {
