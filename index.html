@@ -2695,6 +2695,8 @@
 
   function parseESPNPlayers(evt) {
     const comps = evt.competitions?.[0]?.competitors || [];
+    // LOG RAW FIRST COMPETITOR to diagnose ESPN structure
+    if (comps[0]) console.log("[WYNN] RAW first competitor keys:", Object.keys(comps[0]), "\nRAW linescores[0]:", JSON.stringify(comps[0].linescores?.[0]), "\nRAW status:", JSON.stringify(comps[0].status), "\nRAW teeTime:", comps[0].teeTime, "\nRAW full (first 800):", JSON.stringify(comps[0]).substring(0,800));
 
     // Cut is drawn once any player has round-3 data (tee time or hole scores)
     const cutHasBeenDrawn = comps.some(c =>
