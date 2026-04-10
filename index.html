@@ -3684,7 +3684,16 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
 
     // Only show if ESPN data matches the active tournament
     const espnName   = window._group.espnTournamentName || '';
-    const activeName = window._group.data?.activeTournament?.name || window._group.data?.tournament?.name || '';
+    let activeName = window._group.data?.activeTournament?.name || window._group.data?.tournament?.name || '';
+    if (!activeName && window._group.data?.format === 'major_slam') {
+      const _gd = window._group.data;
+      const _idx = _gd.currentTournamentIndex || 0;
+      const _majors = _gd.majorTournaments || [
+        {name:'The Masters'},{name:'PGA Championship'},{name:'U.S. Open'},
+        {name:'The Open Championship'},{name:'FedEx Cup Playoffs'}
+      ];
+      activeName = _majors[_idx]?.name || '';
+    }
     if (activeName && espnName) {
       const norm = s => s.toLowerCase().replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ').trim();
       const espnWords   = norm(espnName).split(' ').filter(w => w.length > 3);
