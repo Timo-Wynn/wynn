@@ -2596,10 +2596,10 @@
       // Single: active as long as tournament has NOT been ended (tournamentEnded flag)
       hasActive = !g.tournamentEnded;
     } else if (g.format === 'major_slam') {
-      // Major Slam: active as long as not all tournaments are completed
+      // Major Slam: active only if activeTournament exists AND is not yet completed
       const mIdx = g.currentTournamentIndex || 0;
       const mLen = (g.majorTournaments || Array(5)).length;
-      hasActive = mIdx < mLen && !g.activeTournament?.completed;
+      hasActive = mIdx < mLen && !!g.activeTournament && !g.activeTournament.completed;
     } else {
       // Season: active if activeTournament exists and not completed
       hasActive = !!(g.activeTournament && !g.activeTournament.completed);
