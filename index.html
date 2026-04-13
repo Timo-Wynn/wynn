@@ -2596,10 +2596,12 @@
       // Single: active as long as tournament has NOT been ended (tournamentEnded flag)
       hasActive = !g.tournamentEnded;
     } else if (g.format === 'major_slam') {
-      // Major Slam: active only if activeTournament exists AND is not yet completed
+      // Major Slam: active as long as current tournament is not yet completed
       const mIdx = g.currentTournamentIndex || 0;
       const mLen = (g.majorTournaments || Array(5)).length;
-      hasActive = mIdx < mLen && !!g.activeTournament && !g.activeTournament.completed;
+      const currentMajor = g.majorTournaments?.[mIdx];
+      const alreadyCompleted = g.activeTournament?.completed || currentMajor?.completed;
+      hasActive = mIdx < mLen && !alreadyCompleted;
     } else {
       // Season: active if activeTournament exists and not completed
       hasActive = !!(g.activeTournament && !g.activeTournament.completed);
@@ -3474,6 +3476,10 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
       // Single format stores the tournament in g.tournament, not g.activeTournament
       if (g.tournamentEnded) { showToast('Tournament already ended.', 'error'); return; }
       activeTournament = g.tournament;
+    } else if (g.format === 'major_slam') {
+      // Major Slam: prefer activeTournament if set, otherwise use majorTournaments[currentIndex]
+      const mIdx = g.currentTournamentIndex || 0;
+      activeTournament = g.activeTournament || g.majorTournaments?.[mIdx];
     } else {
       activeTournament = g.activeTournament;
     }
@@ -3592,11 +3598,21 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
       });
       window._group.data.activeTournament = completedT;
 
-      // For major slam: advance to next tournament index
+      // For major slam: advance to next tournament index AND mark current as completed
       if (g.format === 'major_slam') {
-        const nextIdx = (g.currentTournamentIndex || 0) + 1;
-        await update(ref(db, `groups/${gid}`), { currentTournamentIndex: nextIdx });
+        const mIdx = g.currentTournamentIndex || 0;
+        const nextIdx = mIdx + 1;
+        const updatedMajors = (g.majorTournaments || []).map((t, i) =>
+          i === mIdx ? { ...t, completed: true } : t
+        );
+        await update(ref(db, `groups/${gid}`), {
+          currentTournamentIndex: nextIdx,
+          majorTournaments: updatedMajors,
+          activeTournament: null,
+        });
         window._group.data.currentTournamentIndex = nextIdx;
+        window._group.data.majorTournaments = updatedMajors;
+        window._group.data.activeTournament = null;
       }
 
       // For season: mark in seasonTournaments list too
