@@ -4490,52 +4490,42 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
   /* ----------------------------------------------------------
      EMAILJS — PICK REMINDERS
   ---------------------------------------------------------- */
-  const EMAILJS_PUBLIC_KEY  = 'A0RPCxH97TpZRRtbU';
   const EMAILJS_SERVICE_ID  = 'service_s1rb86i';
   const EMAILJS_TEMPLATE_ID = 'template_mjqmtih';
-  emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+  // emailjs is a global from the regular <script> tag — use window.emailjs in module scope
+  window.addEventListener('load', () => {
+    if (window.emailjs) window.emailjs.init({ publicKey: 'A0RPCxH97TpZRRtbU' });
+  });
 
   window.sendPickReminders = async () => {
-    const btn     = document.getElementById('gs-remind-btn');
-    const infoEl  = document.getElementById('gs-remind-info');
-    const gid     = window._group.id;
-    const g       = window._group.data;
-    const members = g.members || {};
+    const btn    = document.getElementById('gs-remind-btn');
+    const infoEl = document.getElementById('gs-remind-info');
+    const gid    = window._group.id;
+    const g      = window._group.data;
+    const memberUids = Object.keys(g.members || {});
 
     btn.disabled    = true;
     btn.textContent = '⏳ Sende Reminders...';
     infoEl.textContent = '';
 
     try {
-      // Load picks + member data
-      const [picksSnap, ...memberSnaps] = await Promise.all([
+      // Fetch picks and all member user-data in parallel
+      const [picksSnap, ...userSnaps] = await Promise.all([
         get(ref(db, `groups/${gid}/picks`)),
-        ...Object.keys(members).map(uid => get(ref(db, `users/${uid}`)))
+        ...memberUids.map(uid => get(ref(db, `users/${uid}`)))
       ]);
       const picksData = picksSnap.exists() ? picksSnap.val() : {};
+
+      // Build member list and filter to those without picks who have an email
+      const missing = memberUids
+        .map((uid, i) => ({ uid, ...(userSnaps[i].exists() ? userSnaps[i].val() : {}) }))
+        .filter(m => m.email && !picksData[m.uid]);
 
       const deadlineTs = g.deadlineTimestamp;
       const deadlineStr = deadlineTs
         ? new Date(deadlineTs).toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' }) + ', 22:00 CET'
         : 'bald';
       const tournamentName = g.activeTournament?.name || g.name || 'WYNN';
-      const appUrl = 'https://timo-wynn.github.io/wynn/';
-
-      // Filter to members without picks who have an email
-      const toRemind = memberSnaps
-        .map(s => s.exists() ? s.val() : null)
-        .filter(u => u && u.email && !picksData[Object.keys(members).find(id => {
-          // match by iterating memberSnaps index
-          return true; // we'll do it properly below
-        })]);
-
-      // Rebuild properly
-      const memberList = Object.keys(members).map((uid, i) => {
-        const snap = memberSnaps[i];
-        return snap.exists() ? { uid, ...snap.val() } : { uid, name: 'Unknown' };
-      });
-
-      const missing = memberList.filter(m => !picksData[m.uid] && m.email);
 
       if (missing.length === 0) {
         infoEl.textContent = '✅ Alle haben bereits ihre Picks eingereicht!';
@@ -4546,12 +4536,10 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
       let sent = 0, failed = 0;
       for (const member of missing) {
         try {
-          await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+          await window.emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
             to_email:        member.email,
-            to_name:         member.name,
             tournament_name: tournamentName,
             deadline:        deadlineStr,
-            app_url:         appUrl,
           });
           sent++;
         } catch (e) {
