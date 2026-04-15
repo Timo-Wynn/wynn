@@ -1215,6 +1215,8 @@
       }
     }
   </style>
+  <!-- EmailJS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
 
@@ -1595,6 +1597,12 @@
         <div id="gs-join-section" class="hidden" style="margin-top:16px;">
           <button class="btn btn-danger btn-full btn-sm" onclick="leaveGroup()">Leave Group</button>
         </div>
+        <div id="gs-remind-section" class="hidden" style="margin-top:16px;">
+          <button class="btn btn-secondary btn-full" onclick="sendPickReminders()" id="gs-remind-btn">
+            🔔 Picks Reminder senden
+          </button>
+          <div id="gs-remind-info" style="font-size:12px;color:var(--text-light);text-align:center;margin-top:6px;"></div>
+        </div>
       </div>
 
       <!-- Tab: History / Season Tournaments -->
@@ -1612,39 +1620,9 @@
 
       <!-- Tab: Saison-Wertung -->
       <div id="gs-tab-season" class="group-tab-panel hidden">
-        <div id="gs-season-rules-info" style="font-size:12px;color:var(--text-light);margin-bottom:12px;background:var(--cream-dark);border-radius:10px;padding:10px 14px;">
-          🏆 <strong>Saison-Wertung:</strong> Normal = 1/2/3 Pt · Signature ×2 · Major ×3 · Bei Gleichstand werden Punkte geteilt.
+        <div style="font-size:12px;color:var(--text-light);margin-bottom:16px;background:var(--cream-dark);border-radius:10px;padding:10px 14px;">
+          🏆 <strong>Saison-Wertung:</strong> Normal = 1 Pt · Signature Event = 2 Pt · Major = 3 Pt · Bei Gleichstand werden Punkte geteilt.
         </div>
-
-        <!-- Rules edit panel (owner only) -->
-        <div id="gs-season-rules-edit" class="hidden" style="background:var(--white);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;box-shadow:var(--shadow);border:1.5px solid var(--cream-deeper);">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-            <span style="font-weight:700;font-size:13px;">⚙️ Punkteregeln bearbeiten</span>
-            <button onclick="toggleRulesEdit()" style="background:none;border:none;color:var(--text-light);font-size:18px;cursor:pointer;line-height:1;">×</button>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
-            <div>
-              <label style="font-size:11px;color:var(--text-light);display:block;margin-bottom:4px;">🥇 1. Platz</label>
-              <input type="number" id="edit-rule-first" value="3" min="0" max="99" style="text-align:center;padding:8px;width:100%;border:1.5px solid var(--cream-deeper);border-radius:8px;font-size:15px;" />
-            </div>
-            <div>
-              <label style="font-size:11px;color:var(--text-light);display:block;margin-bottom:4px;">🥈 2. Platz</label>
-              <input type="number" id="edit-rule-second" value="2" min="0" max="99" style="text-align:center;padding:8px;width:100%;border:1.5px solid var(--cream-deeper);border-radius:8px;font-size:15px;" />
-            </div>
-            <div>
-              <label style="font-size:11px;color:var(--text-light);display:block;margin-bottom:4px;">🥉 3. Platz</label>
-              <input type="number" id="edit-rule-third" value="1" min="0" max="99" style="text-align:center;padding:8px;width:100%;border:1.5px solid var(--cream-deeper);border-radius:8px;font-size:15px;" />
-            </div>
-          </div>
-          <div id="edit-rules-preview" style="font-size:11px;color:var(--green-mid);background:var(--green-subtle);border-radius:8px;padding:7px 10px;margin-bottom:12px;">
-            → Normal: 3/2/1 · Signature: 6/4/2 · Major: 9/6/3
-          </div>
-          <button class="btn btn-primary w-full" onclick="saveSeasonRules(false)" style="margin-bottom:8px;">Regeln speichern</button>
-          <button class="btn btn-secondary w-full" onclick="saveSeasonRules(true)" style="font-size:12px;">
-            ⚠️ Speichern &amp; alle bisherigen Turniere neu berechnen
-          </button>
-        </div>
-
         <div id="gs-season-standings">
           <div class="empty-state"><div class="empty-icon">🏆</div><p>Noch keine Ergebnisse.</p></div>
         </div>
@@ -1709,29 +1687,6 @@
       </div>
       <div id="season-info" class="hidden" style="background:var(--cream-dark);border-radius:var(--radius);padding:12px 14px;font-size:13px;color:var(--text-mid);">
         📅 You can add tournaments to your season at any time from the group screen.
-      </div>
-      <div id="season-rules-field" class="hidden">
-        <div class="form-group" style="margin-bottom:8px;">
-          <label>Punkteverteilung (Basis)</label>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:6px;">
-            <div>
-              <label style="font-size:11px;color:var(--text-light);display:block;margin-bottom:4px;">🥇 1. Platz</label>
-              <input type="number" id="rule-first" value="3" min="0" max="99" style="text-align:center;padding:8px;" />
-            </div>
-            <div>
-              <label style="font-size:11px;color:var(--text-light);display:block;margin-bottom:4px;">🥈 2. Platz</label>
-              <input type="number" id="rule-second" value="2" min="0" max="99" style="text-align:center;padding:8px;" />
-            </div>
-            <div>
-              <label style="font-size:11px;color:var(--text-light);display:block;margin-bottom:4px;">🥉 3. Platz</label>
-              <input type="number" id="rule-third" value="1" min="0" max="99" style="text-align:center;padding:8px;" />
-            </div>
-          </div>
-          <div style="font-size:11px;color:var(--text-light);margin-top:8px;padding:8px;background:var(--green-subtle);border-radius:8px;">
-            Signature Event <strong>×2</strong> · Major <strong>×3</strong><br>
-            <span id="rules-preview" style="color:var(--green-mid);">→ Normal: 3/2/1 · Signature: 6/4/2 · Major: 9/6/3</span>
-          </div>
-        </div>
       </div>
       <div class="form-group">
         <label>Visibility</label>
@@ -2018,19 +1973,7 @@
     document.getElementById('tournament-picker-field').classList.toggle('hidden', fmt !== 'single');
     document.getElementById('major-slam-info').classList.toggle('hidden', fmt !== 'major_slam');
     document.getElementById('season-info').classList.toggle('hidden', fmt !== 'season');
-    document.getElementById('season-rules-field').classList.toggle('hidden', fmt !== 'season');
   };
-
-  function updateRulesPreview() {
-    const f = parseInt(document.getElementById('rule-first')?.value) || 3;
-    const s = parseInt(document.getElementById('rule-second')?.value) || 2;
-    const t = parseInt(document.getElementById('rule-third')?.value) || 1;
-    const el = document.getElementById('rules-preview');
-    if (el) el.textContent = `→ Normal: ${f}/${s}/${t} · Signature: ${f*2}/${s*2}/${t*2} · Major: ${f*3}/${s*3}/${t*3}`;
-  }
-  document.addEventListener('input', e => {
-    if (['rule-first','rule-second','rule-third'].includes(e.target.id)) updateRulesPreview();
-  });
 
   const PGA_SCHEDULE_2026 = [
     { id: 'sony-open-2026',        name: 'Sony Open in Hawaii',             date: '2026-01-15' },
@@ -2151,12 +2094,6 @@
         { id: 'fedex',     name: 'FedEx Cup Playoffs' },
       ] : null;
 
-      const pointRules = format === 'season' ? {
-        first:  Math.max(0, parseInt(document.getElementById('rule-first').value)  || 3),
-        second: Math.max(0, parseInt(document.getElementById('rule-second').value) || 2),
-        third:  Math.max(0, parseInt(document.getElementById('rule-third').value)  || 1),
-      } : null;
-
       await set(groupRef, {
         name,
         sport:      'golf',
@@ -2169,7 +2106,6 @@
         tournament: tournament || null,
         majorTournaments: majorTournaments || null,
         currentTournamentIndex: format === 'major_slam' ? 0 : null,
-        pointRules: pointRules || null,
         ownerId:    auth.currentUser.uid,
         ownerName:  auth.currentUser.displayName,
         members:    { [auth.currentUser.uid]: true },
@@ -3372,6 +3308,26 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
 
     const joinSection = document.getElementById('gs-join-section');
     joinSection.classList.toggle('hidden', uid === g.ownerId);
+
+    const remindSection = document.getElementById('gs-remind-section');
+    const isOwnerOrSA = uid === g.ownerId || window._state.isSuperadmin;
+    const deadlineNotPassed = !window._group.deadlinePassed;
+    remindSection.classList.toggle('hidden', !isOwnerOrSA || !deadlineNotPassed);
+    if (isOwnerOrSA && deadlineNotPassed) {
+      // Count who hasn't submitted
+      const gid = window._group.id;
+      const picksSnap = await get(ref(db, `groups/${gid}/picks`));
+      const picksData = picksSnap.exists() ? picksSnap.val() : {};
+      const missing = entries.filter(m => !picksData[m.uid]);
+      const infoEl = document.getElementById('gs-remind-info');
+      if (missing.length === 0) {
+        infoEl.textContent = '✅ Alle haben bereits ihre Picks eingereicht!';
+        document.getElementById('gs-remind-btn').disabled = true;
+      } else {
+        infoEl.textContent = `${missing.length} von ${entries.length} haben noch keine Picks`;
+        document.getElementById('gs-remind-btn').disabled = false;
+      }
+    }
   }
 
   window.kickMember = async (memberId, memberName) => {
@@ -3452,15 +3408,6 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
     Array.from(sel.options).forEach(opt => {
       if (added.includes(opt.value)) opt.disabled = true;
     });
-    // Update type labels with current pointRules
-    const rules = g.pointRules || { first: 3, second: 2, third: 1 };
-    const { first: f, second: s, third: t } = rules;
-    const typeSel = document.getElementById('add-tournament-type');
-    if (typeSel) {
-      typeSel.options[0].text = `Normal — ${f}/${s}/${t} Pt`;
-      typeSel.options[1].text = `Signature Event — ${f*2}/${s*2}/${t*2} Pt`;
-      typeSel.options[2].text = `Major — ${f*3}/${s*3}/${t*3} Pt`;
-    }
   };
 
   window.confirmAddTournament = async () => {
@@ -3479,10 +3426,7 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
     await update(ref(db, `groups/${gid}`), { seasonTournaments: updated });
     window._group.data.seasonTournaments = updated;
     closeModal('add-tournament-modal');
-    const rules = g.pointRules || { first: 3, second: 2, third: 1 };
-    const factor = ttype === 'major' ? 3 : ttype === 'signature' ? 2 : 1;
-    const ruleF = rules.first, ruleS = rules.second, ruleT = rules.third;
-    const typeLabel = `${ttype === 'major' ? 'Major' : ttype === 'signature' ? 'Signature' : 'Normal'} (${ruleF*factor}/${ruleS*factor}/${ruleT*factor} Pt)`;
+    const typeLabel = ttype === 'major' ? 'Major (3 Pt)' : ttype === 'signature' ? 'Signature (2 Pt)' : 'Normal (1 Pt)';
     showToast(`"${name}" hinzugefügt — ${typeLabel} 🎉`, 'success');
     renderHistory();
   };
@@ -3723,38 +3667,32 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
       await update(ref(db, `users/${r.uid}/stats`), { [gid + '_' + tid]: statEntry });
     }
 
-    // ── Season points: award to top 3 with proper tie-splitting ──
-    if (g.format === 'season') {
-      const tData   = (g.seasonTournaments || []).find(t => t.id === tid);
-      const ttype   = tData?.ttype || 'normal';
-      const factor  = ttype === 'major' ? 3 : ttype === 'signature' ? 2 : 1;
-      const rules   = g.pointRules || { first: 3, second: 2, third: 1 };
-      const top3Pts = [
-        Math.round(rules.first  * factor * 10) / 10,
-        Math.round(rules.second * factor * 10) / 10,
-        Math.round(rules.third  * factor * 10) / 10,
-      ];
+    // ── Season points: award to winner(s) ──
+    if (g.format === 'season' && winners.length > 0) {
+      // Find tournament type from seasonTournaments
+      const tData    = (g.seasonTournaments || []).find(t => t.id === tid);
+      const ttype    = tData?.ttype || 'normal';
+      const basePoints = ttype === 'major' ? 3 : ttype === 'signature' ? 2 : 1;
+      // Split points if tied winners (round to nearest 0.5)
+      const pointsEach = winners.length === 1 ? basePoints : Math.round((basePoints / winners.length) * 2) / 2;
 
-      const histPlacements = calcTiePlacements(scored, top3Pts);
-
-      // Load + update seasonPoints
+      // Load current season points from Firebase
       const spSnap = await get(ref(db, `groups/${gid}/seasonPoints`));
       const seasonPoints = spSnap.exists() ? spSnap.val() : {};
 
-      for (const p of histPlacements) {
-        const cur = seasonPoints[p.uid] || { name: p.name, points: 0, wins: 0 };
-        cur.name   = p.name;
-        cur.points = Math.round((cur.points + p.points) * 10) / 10;
-        if (p.position === 1) cur.wins = (cur.wins || 0) + 1;
-        seasonPoints[p.uid] = cur;
+      for (const w of winners) {
+        const current = seasonPoints[w.uid] || { name: w.name, points: 0, wins: 0 };
+        current.name   = w.name;
+        current.points = Math.round((current.points + pointsEach) * 10) / 10;
+        current.wins   = (current.wins || 0) + 1;
+        seasonPoints[w.uid] = current;
       }
-
       await set(ref(db, `groups/${gid}/seasonPoints`), seasonPoints);
+
+      // Also save tournament result in season points history
       await set(ref(db, `groups/${gid}/seasonPoints/_history/${tid}`), {
-        name: activeTournament.name, ttype, factor, rules,
-        placements: histPlacements,
-        winners: histPlacements.filter(p => p.position === 1).map(p => ({ uid: p.uid, name: p.name, points: p.points })),
-        basePoints: top3Pts[0],
+        name: activeTournament.name, ttype, basePoints,
+        winners: winners.map(w => ({ uid: w.uid, name: w.name, points: pointsEach })),
         date: Date.now(),
       });
     }
@@ -3863,163 +3801,6 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
     });
     list.innerHTML = `<div style="background:var(--white);border-radius:var(--radius-lg);padding:12px 16px;box-shadow:var(--shadow);">${rows.join('')}</div>`;
   };
-
-  /* ── TIE-SPLITTING HELPER ──────────────────────────────── */
-  // Implements proper sports tie-splitting:
-  // Tied players share the combined points of ALL positions they occupy.
-  // The next player after a tied group gets the next available slot.
-  // e.g. 2 tied for 1st at Signature (pts: 6/4/2):
-  //   → each gets (6+4)/2 = 5, next player gets slot 2 = 2 pts
-  function calcTiePlacements(scored, top3Pts) {
-    const placements = [];
-    // Build groups of consecutive tied scores
-    const groups = [];
-    for (const r of scored) {
-      const last = groups[groups.length - 1];
-      if (last && last.score === r.total) { last.members.push(r); }
-      else { groups.push({ score: r.total, members: [r] }); }
-    }
-
-    let slot = 0; // current point slot (0=1st, 1=2nd, 2=3rd)
-    for (const group of groups) {
-      if (slot >= 3) break; // no more point slots available
-
-      // How many slots does this tied group consume?
-      const slotsConsumed = Math.min(group.members.length, 3 - slot);
-      // Sum up the points of all slots they occupy
-      let sumPts = 0;
-      for (let i = 0; i < slotsConsumed; i++) sumPts += (top3Pts[slot + i] || 0);
-      // Each tied member gets an equal share (rounded to 0.5)
-      const each = group.members.length === 1
-        ? sumPts
-        : Math.round((sumPts / group.members.length) * 2) / 2;
-
-      const displayPos = slot + 1; // 1-based: 2 tied for 1st → pos=1, next is pos=3
-      for (const r of group.members) {
-        placements.push({
-          uid: r.uid, name: r.name,
-          position: displayPos,
-          isTied: group.members.length > 1,
-          points: each,
-        });
-      }
-      // Advance slot by how many players were tied (they "used up" those slots)
-      slot += slotsConsumed;
-    }
-    return placements;
-  }
-
-  /* ── SEASON RULES HELPERS ──────────────────────────────── */
-
-  function updateEditRulesPreview() {
-    const f = parseInt(document.getElementById('edit-rule-first')?.value)  || 0;
-    const s = parseInt(document.getElementById('edit-rule-second')?.value) || 0;
-    const t = parseInt(document.getElementById('edit-rule-third')?.value)  || 0;
-    const el = document.getElementById('edit-rules-preview');
-    if (el) el.textContent = `→ Normal: ${f}/${s}/${t} · Signature: ${f*2}/${s*2}/${t*2} · Major: ${f*3}/${s*3}/${t*3}`;
-  }
-  document.addEventListener('input', e => {
-    if (['edit-rule-first','edit-rule-second','edit-rule-third'].includes(e.target.id)) updateEditRulesPreview();
-  });
-
-  window.toggleRulesEdit = function() {
-    const panel = document.getElementById('gs-season-rules-edit');
-    if (panel) panel.classList.toggle('hidden');
-  };
-
-  window.saveSeasonRules = async function(recalculate = false) {
-    const gid = window._group.id;
-    const g   = window._group.data;
-    const f   = Math.max(0, parseInt(document.getElementById('edit-rule-first').value)  || 3);
-    const s   = Math.max(0, parseInt(document.getElementById('edit-rule-second').value) || 2);
-    const t   = Math.max(0, parseInt(document.getElementById('edit-rule-third').value)  || 1);
-    const newRules = { first: f, second: s, third: t };
-
-    if (recalculate) {
-      const confirmed = window.confirm(
-        `Alle bisherigen Turnier-Punkte werden mit den neuen Regeln (${f}/${s}/${t}) neu berechnet. Aktuelle Punkte werden überschrieben.\n\nFortfahren?`
-      );
-      if (!confirmed) return;
-    }
-
-    try {
-      await update(ref(db, `groups/${gid}`), { pointRules: newRules });
-      window._group.data.pointRules = newRules;
-
-      if (recalculate) {
-        await recalculateSeasonPoints(gid, newRules);
-        showToast('Regeln gespeichert & Punkte neu berechnet! ✅', 'success');
-      } else {
-        showToast('Punkteregeln gespeichert! ✅', 'success');
-      }
-
-      renderSeasonStandings();
-    } catch(e) {
-      showToast('Fehler beim Speichern.', 'error');
-    }
-  };
-
-  async function recalculateSeasonPoints(gid, rules) {
-    const g = window._group.data;
-
-    // Load full history
-    const histSnap = await get(ref(db, `groups/${gid}/history`));
-    if (!histSnap.exists()) {
-      await set(ref(db, `groups/${gid}/seasonPoints`), {});
-      return;
-    }
-    const history = histSnap.val();
-
-    // Load all season tournament types
-    const tournamentTypes = {};
-    (g.seasonTournaments || []).forEach(t => { tournamentTypes[t.id] = t.ttype || 'normal'; });
-
-    // Rebuild seasonPoints from scratch
-    const newSeasonPoints = {};
-    const newHistory = {};
-
-    // Sort by date so we process chronologically
-    const entries = Object.entries(history).sort((a, b) => (a[1].completedAt || 0) - (b[1].completedAt || 0));
-
-    for (const [tid, tData] of entries) {
-      const results = tData.results || [];
-      const scored  = results.filter(r => r.total !== null && r.total !== undefined && !isNaN(r.total))
-                             .sort((a, b) => a.total - b.total);
-      if (!scored.length) continue;
-
-      const ttype  = tournamentTypes[tid] || 'normal';
-      const factor = ttype === 'major' ? 3 : ttype === 'signature' ? 2 : 1;
-      const top3Pts = [
-        Math.round(rules.first  * factor * 10) / 10,
-        Math.round(rules.second * factor * 10) / 10,
-        Math.round(rules.third  * factor * 10) / 10,
-      ];
-
-      // Group into distinct finishing positions (top 3)
-      const placements = calcTiePlacements(scored, top3Pts);
-
-      for (const p of placements) {
-        const cur = newSeasonPoints[p.uid] || { name: p.name, points: 0, wins: 0 };
-        cur.name   = p.name;
-        cur.points = Math.round((cur.points + p.points) * 10) / 10;
-        if (p.position === 1) cur.wins = (cur.wins || 0) + 1;
-        newSeasonPoints[p.uid] = cur;
-      }
-
-      newHistory[tid] = {
-        name: tData.name, ttype, factor, rules,
-        placements,
-        winners: placements.filter(p => p.position === 1).map(p => ({ uid: p.uid, name: p.name, points: p.points })),
-        basePoints: top3Pts[0],
-        date: tData.completedAt || Date.now(),
-      };
-    }
-
-    // Write rebuilt data
-    newSeasonPoints._history = newHistory;
-    await set(ref(db, `groups/${gid}/seasonPoints`), newSeasonPoints);
-    window._group.data = (await get(ref(db, `groups/${gid}`))).val();
-  }
 
   /* ── SEASON STANDINGS ───────────────────────────────────── */
   window.renderSeasonStandings = async function() {
@@ -4198,65 +3979,23 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
     const history_sp = seasonPoints._history || {};
     const histEntries = Object.entries(history_sp).sort((a,b) => (b[1].date||0) - (a[1].date||0));
 
-    const rules = g.pointRules || { first: 3, second: 2, third: 1 };
-    const f = rules.first, s = rules.second, t = rules.third;
-
-    // Update info bar dynamically
-    const infoEl = document.getElementById('gs-season-rules-info');
-    if (infoEl) infoEl.innerHTML = `🏆 <strong>Saison-Wertung:</strong> Normal: ${f}/${s}/${t} Pt · Signature ×2 (${f*2}/${s*2}/${t*2}) · Major ×3 (${f*3}/${s*3}/${t*3}) · Bei Gleichstand werden Punkte geteilt.`;
-
-    // Show edit button if owner
-    const isOwner = auth.currentUser?.uid === g.ownerId || window._state.isSuperadmin;
-    const editPanel = document.getElementById('gs-season-rules-edit');
-    if (editPanel && isOwner) {
-      editPanel.classList.remove('hidden');
-      document.getElementById('edit-rule-first').value  = rules.first;
-      document.getElementById('edit-rule-second').value = rules.second;
-      document.getElementById('edit-rule-third').value  = rules.third;
-      updateEditRulesPreview();
-    } else if (editPanel) {
-      editPanel.classList.add('hidden');
-    }
-
-    const typeTag = tt => {
-      const factor = tt === 'major' ? 3 : tt === 'signature' ? 2 : 1;
-      const label  = tt === 'major' ? 'Major' : tt === 'signature' ? 'Signature' : 'Normal';
-      const pts    = `${f*factor}/${s*factor}/${t*factor} Pt`;
-      const bg     = tt === 'major' ? '#FEF3CD' : tt === 'signature' ? '#E8ECFF' : 'var(--cream-dark)';
-      const col    = tt === 'major' ? '#856404' : tt === 'signature' ? '#003399' : 'var(--text-mid)';
-      return `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:${bg};color:${col};">${label} ${pts}</span>`;
-    };
-
-    // Count podium finishes (2nd/3rd) from seasonPoints history
-    const podiumCount = {}; // uid -> { second: N, third: N }
-    Object.values(seasonPoints._history || {}).forEach(ht => {
-      (ht.placements || []).forEach(p => {
-        if (!podiumCount[p.uid]) podiumCount[p.uid] = { second: 0, third: 0 };
-        if (p.position === 2) podiumCount[p.uid].second++;
-        if (p.position === 3) podiumCount[p.uid].third++;
-      });
-    });
+    const typeTag = t => t === 'major'
+      ? `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:#FEF3CD;color:#856404;">Major 3Pt</span>`
+      : t === 'signature'
+      ? `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:#E8ECFF;color:#003399;">Signature 2Pt</span>`
+      : `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--cream-dark);color:var(--text-mid);">Normal 1Pt</span>`;
 
     el.innerHTML = `
       <!-- Punkte-Tabelle -->
       <div style="background:var(--white);border-radius:var(--radius-lg);padding:16px;box-shadow:var(--shadow);margin-bottom:20px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light);">🏆 Saison-Punkte</div>
-          ${isOwner ? `<button onclick="toggleRulesEdit()" style="font-size:11px;color:var(--green-mid);background:var(--green-subtle);border:none;border-radius:20px;padding:4px 10px;cursor:pointer;font-weight:600;">⚙️ Regeln</button>` : ''}
-        </div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light);margin-bottom:12px;">🏆 Saison-Punkte</div>
         ${memberSnaps.map((m, i) => {
           const medal = i === 0 && m.points > 0 ? '🥇' : i === 1 && m.points > 0 ? '🥈' : i === 2 && m.points > 0 ? '🥉' : `${i+1}.`;
-          const pod = podiumCount[m.uid] || {};
-          const podStr = [
-            m.wins   ? `🥇 ${m.wins}`   : '',
-            pod.second ? `🥈 ${pod.second}` : '',
-            pod.third  ? `🥉 ${pod.third}`  : '',
-          ].filter(Boolean).join(' · ') || '—';
           return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--cream-dark);">
             <span style="min-width:28px;font-size:16px;text-align:center;">${medal}</span>
             <div style="flex:1;">
               <div style="font-weight:700;font-size:14px;">${escHtml(m.name)}</div>
-              <div style="font-size:11px;color:var(--text-light);">${podStr}</div>
+              <div style="font-size:11px;color:var(--text-light);">${m.wins} Sieg${m.wins !== 1 ? 'e' : ''}</div>
             </div>
             <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:900;color:var(--green);">${m.points} <span style="font-size:13px;font-weight:400;color:var(--text-light);">Pt</span></div>
           </div>`;
@@ -4284,14 +4023,7 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
               <span style="font-weight:700;font-size:13px;">${escHtml(t.name)}</span>
               ${typeTag(t.ttype)}
             </div>
-            ${t.placements ? t.placements.map(p => {
-              const medal = p.position === 1 ? '🥇' : p.position === 2 ? '🥈' : '🥉';
-              const posLabel = p.isTied ? `T${p.position}` : `${p.position}.`;
-              return `<div style="font-size:12px;color:var(--text-mid);display:flex;justify-content:space-between;align-items:center;">
-                <span>${medal} <span style="font-size:10px;color:var(--text-light);font-weight:600;">${posLabel}</span> ${escHtml(p.name)}</span>
-                <span style="color:var(--green);font-weight:700;">+${p.points} Pt</span>
-              </div>`;
-            }).join('') : (t.winners||[]).map(w => `<div style="font-size:12px;color:var(--text-mid);">🥇 ${escHtml(w.name)} <span style="color:var(--green);font-weight:700;">+${w.points} Pt</span></div>`).join('')}
+            ${(t.winners||[]).map(w => `<div style="font-size:12px;color:var(--text-mid);">🏆 ${escHtml(w.name)} <span style="color:var(--green);font-weight:700;">+${w.points} Pt</span></div>`).join('')}
           </div>`).join('')}` : ''}
     `;
   };
@@ -4754,6 +4486,96 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
   window.addEventListener('appinstalled', () => {
     document.getElementById('pwa-install-btn')?.classList.add('hidden');
   });
+
+  /* ----------------------------------------------------------
+     EMAILJS — PICK REMINDERS
+  ---------------------------------------------------------- */
+  const EMAILJS_PUBLIC_KEY  = 'A0RPCxH97TpZRRtbU';
+  const EMAILJS_SERVICE_ID  = 'service_s1rb86i';
+  const EMAILJS_TEMPLATE_ID = 'template_mjqmtih';
+  emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+
+  window.sendPickReminders = async () => {
+    const btn     = document.getElementById('gs-remind-btn');
+    const infoEl  = document.getElementById('gs-remind-info');
+    const gid     = window._group.id;
+    const g       = window._group.data;
+    const members = g.members || {};
+
+    btn.disabled    = true;
+    btn.textContent = '⏳ Sende Reminders...';
+    infoEl.textContent = '';
+
+    try {
+      // Load picks + member data
+      const [picksSnap, ...memberSnaps] = await Promise.all([
+        get(ref(db, `groups/${gid}/picks`)),
+        ...Object.keys(members).map(uid => get(ref(db, `users/${uid}`)))
+      ]);
+      const picksData = picksSnap.exists() ? picksSnap.val() : {};
+
+      const deadlineTs = g.deadlineTimestamp;
+      const deadlineStr = deadlineTs
+        ? new Date(deadlineTs).toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' }) + ', 22:00 CET'
+        : 'bald';
+      const tournamentName = g.activeTournament?.name || g.name || 'WYNN';
+      const appUrl = 'https://timo-wynn.github.io/wynn/';
+
+      // Filter to members without picks who have an email
+      const toRemind = memberSnaps
+        .map(s => s.exists() ? s.val() : null)
+        .filter(u => u && u.email && !picksData[Object.keys(members).find(id => {
+          // match by iterating memberSnaps index
+          return true; // we'll do it properly below
+        })]);
+
+      // Rebuild properly
+      const memberList = Object.keys(members).map((uid, i) => {
+        const snap = memberSnaps[i];
+        return snap.exists() ? { uid, ...snap.val() } : { uid, name: 'Unknown' };
+      });
+
+      const missing = memberList.filter(m => !picksData[m.uid] && m.email);
+
+      if (missing.length === 0) {
+        infoEl.textContent = '✅ Alle haben bereits ihre Picks eingereicht!';
+        btn.textContent = '🔔 Picks Reminder senden';
+        return;
+      }
+
+      let sent = 0, failed = 0;
+      for (const member of missing) {
+        try {
+          await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+            to_email:        member.email,
+            to_name:         member.name,
+            tournament_name: tournamentName,
+            deadline:        deadlineStr,
+            app_url:         appUrl,
+          });
+          sent++;
+        } catch (e) {
+          console.warn('[WYNN] EmailJS failed for', member.email, e);
+          failed++;
+        }
+      }
+
+      btn.textContent = '🔔 Picks Reminder senden';
+      if (failed === 0) {
+        showToast(`✅ ${sent} Reminder gesendet!`, 'success');
+        infoEl.textContent = `✅ ${sent} Reminder erfolgreich gesendet`;
+      } else {
+        showToast(`⚠️ ${sent} gesendet, ${failed} fehlgeschlagen`, 'error');
+        infoEl.textContent = `${sent} gesendet, ${failed} fehlgeschlagen`;
+        btn.disabled = false;
+      }
+    } catch (err) {
+      console.error('[WYNN] sendPickReminders error:', err);
+      showToast('Fehler beim Senden der Reminder.', 'error');
+      btn.textContent = '🔔 Picks Reminder senden';
+      btn.disabled = false;
+    }
+  };
 </script>
 
 </body>
