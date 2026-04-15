@@ -1811,6 +1811,10 @@
   const app  = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db   = getDatabase(app);
+  // Expose Firebase helpers globally so window.* functions can always reach them
+  window._fbDb  = db;
+  window._fbGet = get;
+  window._fbRef = ref;
 
   /* ----------------------------------------------------------
      CONSTANTS
@@ -4510,9 +4514,12 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
 
     try {
       // Fetch picks and all member user-data in parallel
+      const _get = window._fbGet;
+      const _ref = window._fbRef;
+      const _db  = window._fbDb;
       const [picksSnap, ...userSnaps] = await Promise.all([
-        get(ref(db, `groups/${gid}/picks`)),
-        ...memberUids.map(uid => get(ref(db, `users/${uid}`)))
+        _get(_ref(_db, `groups/${gid}/picks`)),
+        ...memberUids.map(uid => _get(_ref(_db, `users/${uid}`)))
       ]);
       const picksData = picksSnap.exists() ? picksSnap.val() : {};
 
