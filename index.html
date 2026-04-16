@@ -1195,6 +1195,72 @@
     .score-even     { color: var(--text-mid); }
 
     /* ============================================================
+       BONUS BETS
+    ============================================================ */
+    .bonus-bets-section { margin-top: 24px; }
+    .bonus-bets-header  { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+    .bonus-bets-header-title { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 900; color: var(--green); }
+    .bonus-bets-header-sub { font-size: 11px; color: var(--text-light); }
+    .bonus-bet-card { background: linear-gradient(135deg, #1B4332 0%, #2D6A4F 100%); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; color: var(--cream); position: relative; overflow: hidden; }
+    .bonus-bet-card::before { content:''; position:absolute; top:-24px; right:-24px; width:90px; height:90px; border-radius:50%; background:rgba(201,168,76,0.13); pointer-events:none; }
+    .bonus-bet-type-tag { display:inline-block; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; padding:2px 8px; border-radius:20px; background:rgba(201,168,76,0.22); color:rgba(201,168,76,0.95); margin-bottom:6px; }
+    .bonus-bet-name { font-family:'Playfair Display',serif; font-size:15px; font-weight:900; margin-bottom:3px; line-height:1.3; }
+    .bonus-bet-pts  { font-size:11px; color:rgba(245,240,232,0.6); margin-bottom:12px; }
+    .bonus-bet-deadline { font-size:11px; color:rgba(201,168,76,0.75); margin-top:8px; }
+    /* inputs */
+    .bb-input { width:100%; padding:9px 13px; border-radius:10px; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.10); color:var(--cream); font-family:'DM Sans',sans-serif; font-size:14px; font-weight:600; outline:none; transition:var(--transition); }
+    .bb-input::placeholder { color:rgba(245,240,232,0.35); font-weight:400; }
+    .bb-input:focus { border-color:rgba(201,168,76,0.65); background:rgba(255,255,255,0.16); }
+    .bb-input:disabled, .bb-btn-row button:disabled { opacity:0.5; cursor:not-allowed; }
+    /* yes/no + over/under buttons */
+    .bb-btn-row { display:flex; gap:8px; }
+    .bb-option-btn { flex:1; padding:9px; border-radius:10px; border:2px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.08); color:rgba(245,240,232,0.7); font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700; cursor:pointer; transition:var(--transition); }
+    .bb-option-btn.selected { border-color:var(--gold); background:rgba(201,168,76,0.25); color:var(--gold); }
+    /* ranking rows */
+    .bb-rank-row { display:flex; align-items:center; gap:8px; margin-bottom:7px; }
+    .bb-rank-label { font-size:12px; font-weight:700; color:var(--gold); min-width:26px; }
+    /* save button */
+    .bb-save-btn { margin-top:10px; width:100%; padding:9px; border-radius:10px; border:none; background:var(--gold); color:var(--green); font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700; cursor:pointer; transition:var(--transition); }
+    .bb-save-btn:hover { filter:brightness(1.07); }
+    /* saved state */
+    .bb-saved-display { margin-top:8px; padding:10px 13px; border-radius:10px; background:rgba(255,255,255,0.10); display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .bb-saved-value { font-weight:700; font-size:14px; flex:1; }
+    .bb-saved-pts { font-family:'Playfair Display',serif; font-size:18px; font-weight:900; color:var(--gold); }
+    .bb-saved-edit { background:none; border:none; font-size:11px; color:rgba(245,240,232,0.45); cursor:pointer; text-decoration:underline; }
+    /* resolved */
+    .bb-resolved-win  { margin-top:8px; padding:10px 13px; border-radius:10px; background:rgba(39,174,96,0.2); border:1px solid rgba(39,174,96,0.45); font-size:13px; font-weight:700; color:#7FFFA8; }
+    .bb-resolved-lose { margin-top:8px; padding:10px 13px; border-radius:10px; background:rgba(255,255,255,0.07); font-size:13px; color:rgba(245,240,232,0.5); }
+    /* locked banner */
+    .bb-locked-bar { padding:9px 13px; border-radius:10px; background:rgba(255,255,255,0.08); font-size:12px; color:rgba(245,240,232,0.5); text-align:center; margin-top:4px; }
+    /* admin modal bonus bet list */
+    .bb-admin-bet-row { background:var(--white); border-radius:var(--radius); padding:13px 14px; margin-bottom:8px; border:2px solid var(--cream-deeper); transition:var(--transition); }
+    .bb-admin-bet-row.active-bet { border-color:var(--green); }
+    .bb-admin-bet-row-top { display:flex; align-items:center; gap:10px; }
+    .bb-admin-toggle { position:relative; width:42px; height:24px; flex-shrink:0; }
+    .bb-admin-toggle input { opacity:0; width:0; height:0; }
+    .bb-admin-toggle-slider { position:absolute; inset:0; border-radius:24px; background:var(--cream-deeper); cursor:pointer; transition:var(--transition); }
+    .bb-admin-toggle input:checked + .bb-admin-toggle-slider { background:var(--green); }
+    .bb-admin-toggle-slider::before { content:''; position:absolute; left:3px; top:3px; width:18px; height:18px; border-radius:50%; background:var(--white); transition:var(--transition); }
+    .bb-admin-toggle input:checked + .bb-admin-toggle-slider::before { transform:translateX(18px); }
+    .bb-admin-bet-name { font-weight:700; font-size:13px; flex:1; }
+    .bb-admin-bet-type-tag { font-size:9px; font-weight:700; padding:2px 7px; border-radius:20px; text-transform:uppercase; letter-spacing:0.08em; }
+    .bb-admin-bet-settings { margin-top:10px; padding-top:10px; border-top:1px solid var(--cream-dark); display:flex; gap:10px; align-items:flex-end; }
+    .bb-admin-bet-settings label { font-size:11px; font-weight:700; color:var(--text-light); display:block; margin-bottom:4px; }
+    .bb-admin-bet-settings input { width:100%; padding:7px 10px; border-radius:8px; border:1.5px solid var(--cream-deeper); font-family:'DM Sans',sans-serif; font-size:13px; outline:none; }
+    .bb-admin-bet-settings input:focus { border-color:var(--green); }
+    /* resolve section */
+    .bb-resolve-row { background:var(--cream-dark); border-radius:var(--radius); padding:12px 14px; margin-bottom:8px; }
+    .bb-resolve-row .bb-r-name { font-weight:700; font-size:13px; margin-bottom:8px; }
+    /* season standings bonus section */
+    .bb-season-card { background:linear-gradient(135deg,#1B4332,#2D6A4F); border-radius:var(--radius-lg); padding:16px; margin-bottom:20px; color:var(--cream); }
+    .bb-season-card-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:rgba(201,168,76,0.9); margin-bottom:12px; }
+    .bb-season-bet-row { padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.1); }
+    .bb-season-bet-name { font-size:13px; font-weight:700; margin-bottom:6px; }
+    .bb-season-pick-row { display:flex; align-items:center; gap:8px; font-size:12px; margin-top:4px; }
+    .bb-season-pick-name { flex:1; color:rgba(245,240,232,0.8); }
+    .bb-season-pick-pts  { font-weight:700; color:var(--gold); }
+
+    /* ============================================================
        RESPONSIVE DESKTOP
     ============================================================ */
     @media (min-width: 640px) {
@@ -1215,8 +1281,6 @@
       }
     }
   </style>
-  <!-- EmailJS SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
 
@@ -1485,6 +1549,11 @@
             ↩ Deaktivieren
           </button>
         </div>
+        <div id="gs-bonus-bets-admin-btn" class="hidden" style="margin-top:8px;">
+          <button onclick="openBonusBetsAdminModal()" style="background:rgba(201,168,76,0.18);border:1.5px solid rgba(201,168,76,0.45);color:rgba(201,168,76,0.95);padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;">
+            ⭐ Bonus Bets verwalten
+          </button>
+        </div>
 
         <!-- Mode description -->
         <div id="gs-mode-description" style="margin-top:12px;background:rgba(255,255,255,0.10);border-radius:10px;padding:10px 14px;">
@@ -1578,6 +1647,9 @@
         </div>
 
         <button class="btn btn-primary btn-full save-picks-btn" id="gs-save-picks-btn" onclick="savePicks()">Save Picks</button>
+
+        <!-- ── Bonus Bets ── -->
+        <div id="gs-bonus-bets-section" class="bonus-bets-section hidden"></div>
       </div>
 
       <!-- Tab: Members -->
@@ -1596,12 +1668,6 @@
         </div>
         <div id="gs-join-section" class="hidden" style="margin-top:16px;">
           <button class="btn btn-danger btn-full btn-sm" onclick="leaveGroup()">Leave Group</button>
-        </div>
-        <div id="gs-remind-section" class="hidden" style="margin-top:16px;">
-          <button class="btn btn-secondary btn-full" onclick="sendPickReminders()" id="gs-remind-btn">
-            🔔 Picks Reminder senden
-          </button>
-          <div id="gs-remind-info" style="font-size:12px;color:var(--text-light);text-align:center;margin-top:6px;"></div>
         </div>
       </div>
 
@@ -1811,10 +1877,6 @@
   const app  = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db   = getDatabase(app);
-  // Expose Firebase helpers globally so window.* functions can always reach them
-  window._fbDb  = db;
-  window._fbGet = get;
-  window._fbRef = ref;
 
   /* ----------------------------------------------------------
      CONSTANTS
@@ -1936,7 +1998,7 @@
       showToast('Error uploading picture.', 'error');
     }
   };
-
+  
   function resizeImage(file, maxSize) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -2621,6 +2683,7 @@
 
     const endSection = document.getElementById('gs-end-tournament-section');
     if (endSection) endSection.classList.toggle('hidden', !isOwner || !hasActive);
+    updateBonusBetsAdminBtn();
   }
 
   window.getNextDeadline = function() {
@@ -3312,26 +3375,6 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
 
     const joinSection = document.getElementById('gs-join-section');
     joinSection.classList.toggle('hidden', uid === g.ownerId);
-
-    const remindSection = document.getElementById('gs-remind-section');
-    const isOwnerOrSA = uid === g.ownerId || window._state.isSuperadmin;
-    const deadlineNotPassed = !window._group.deadlinePassed;
-    remindSection.classList.toggle('hidden', !isOwnerOrSA || !deadlineNotPassed);
-    if (isOwnerOrSA && deadlineNotPassed) {
-      // Count who hasn't submitted
-      const gid = window._group.id;
-      const picksSnap = await get(ref(db, `groups/${gid}/picks`));
-      const picksData = picksSnap.exists() ? picksSnap.val() : {};
-      const missing = entries.filter(m => !picksData[m.uid]);
-      const infoEl = document.getElementById('gs-remind-info');
-      if (missing.length === 0) {
-        infoEl.textContent = '✅ Alle haben bereits ihre Picks eingereicht!';
-        document.getElementById('gs-remind-btn').disabled = true;
-      } else {
-        infoEl.textContent = `${missing.length} von ${entries.length} haben noch keine Picks`;
-        document.getElementById('gs-remind-btn').disabled = false;
-      }
-    }
   }
 
   window.kickMember = async (memberId, memberName) => {
@@ -4030,6 +4073,9 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
             ${(t.winners||[]).map(w => `<div style="font-size:12px;color:var(--text-mid);">🏆 ${escHtml(w.name)} <span style="color:var(--green);font-weight:700;">+${w.points} Pt</span></div>`).join('')}
           </div>`).join('')}` : ''}
     `;
+    // Append bonus bets section
+    const bbHtml = await renderBonusBetsInStandings(gid);
+    if (bbHtml) el.insertAdjacentHTML('beforeend', bbHtml);
   };
 
   async function renderHistory() {
@@ -4472,8 +4518,707 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
     });
   }
 
-  let deferredPrompt;
-  window.addEventListener('beforeinstallprompt', (e) => {
+  /* ================================================================
+     BONUS BETS — Full Implementation
+  ================================================================ */
+
+  /* ── Catalog of all available bonus bets ─────────────────────── */
+  const BB_CATALOG = [
+    // Type 1 — Player Pick
+    { id:'fedex_winner',    type:'player_pick',   typeLabel:'Player Pick',    name:'FedEx Cup Winner',                       desc:'Welcher Spieler gewinnt den FedEx Cup?' },
+    { id:'sg_putting',      type:'player_pick',   typeLabel:'Player Pick',    name:'Best Shots Gained Putting',              desc:'Wer führt am Saisonende die SG Putting Statistik an?' },
+    { id:'sg_t2g',          type:'player_pick',   typeLabel:'Player Pick',    name:'Best Tee to Green',                      desc:'Wer führt am Saisonende die SG Tee-to-Green Statistik an?' },
+    { id:'best_rookie',     type:'player_pick',   typeLabel:'Player Pick',    name:'Best Rookie',                            desc:'Welcher Rookie hat am Saisonende die meisten Punkte?' },
+    { id:'most_birdies',    type:'player_pick',   typeLabel:'Player Pick',    name:'Most Birdies',                           desc:'Wer macht die meisten Birdies in dieser Saison?' },
+    { id:'most_eagles',     type:'player_pick',   typeLabel:'Player Pick',    name:'Most Eagles',                            desc:'Wer macht die meisten Eagles in dieser Saison?' },
+    { id:'most_doubles',    type:'player_pick',   typeLabel:'Player Pick',    name:'Most Double Bogeys',                     desc:'Wer macht die meisten Double Bogeys?' },
+    { id:'longest_drive',   type:'player_pick',   typeLabel:'Player Pick',    name:'Longest Avg. Driving Distance',          desc:'Wer schlägt am weitesten im Schnitt?' },
+    { id:'liv_switch',      type:'player_pick',   typeLabel:'Player Pick',    name:'Who Switches to LIV?',                   desc:'Welcher Spieler wechselt noch in dieser Saison zu LIV?' },
+    // Type 2 — Number Guess
+    { id:'lowest_round',    type:'number_guess',  typeLabel:'Number Guess',   name:'Lowest Round of Season',                 desc:'Wie tief wird die niedrigste Runde sein? (z.B. 61)', unit:'Schläge' },
+    { id:'lowest_score',    type:'number_guess',  typeLabel:'Number Guess',   name:'Lowest Tournament Score',                desc:'Niedrigster Gesamtscore bei einem Turnier (z.B. -27)', unit:'Under Par' },
+    { id:'oldest_winner',   type:'number_guess',  typeLabel:'Number Guess',   name:'Age of Oldest Winner',                   desc:'Wie alt ist der älteste Turniersieger der Saison?', unit:'Jahre' },
+    { id:'dahmen_rank',     type:'number_guess',  typeLabel:'Number Guess',   name:'World Ranking Joel Dahmen — Saisonende', desc:'Auf welcher Position endet Joel Dahmen in der Weltrangliste?', unit:'Rang' },
+    // Type 3 — Yes/No
+    { id:'scheffler_slam',  type:'yes_no',        typeLabel:'Yes / No',       name:'Scheffler Grand Slam?',                  desc:'Gewinnt Scottie Scheffler alle 4 Majors in dieser Saison?' },
+    { id:'tiger_wins',      type:'yes_no',        typeLabel:'Yes / No',       name:'Tiger kommt zurück & gewinnt?',          desc:'Kommt Tiger Woods zurück und gewinnt er ein PGA Tour Turnier?' },
+    // Type 4 — Over/Under
+    { id:'diff_winners',    type:'over_under',    typeLabel:'Over / Under',   name:'Anzahl verschiedener Turniersieger',      desc:'Wie viele verschiedene Spieler gewinnen ein Turnier?', line:28 },
+    // Type 5 — Ranking / Podium
+    { id:'top3_world',      type:'ranking',       typeLabel:'Ranking',        name:'Top 3 Weltrangliste — Saisonende',        desc:'Tippe die Top 3 der Weltrangliste am Ende der Saison.', slots:3 },
+    // Type 6 — Head to Head
+    { id:'rory_vs_scheff',  type:'head_to_head',  typeLabel:'Head to Head',   name:'Rory vs. Scheffler — Mehr Preisgeld?',   desc:'Wer verdient in dieser Saison mehr Preisgeld?', optA:'Rory McIlroy', optB:'Scottie Scheffler' },
+    // Type 7 — Dressing Room
+    { id:'dr_forgets',      type:'dressing_room', typeLabel:'Dressing Room',  name:'Wer vergisst als Erstes zu wetten?',     desc:'Welcher Mitspieler vergisst als Erster eine Wette abzugeben?' },
+    { id:'dr_season_win',   type:'dressing_room', typeLabel:'Dressing Room',  name:'Wer gewinnt die Saison?',                desc:'Welcher Mitspieler gewinnt die Saison-Wertung?' },
+    { id:'dr_season_lose',  type:'dressing_room', typeLabel:'Dressing Room',  name:'Wer verliert die Saison?',               desc:'Welcher Mitspieler landet am Ende auf dem letzten Platz?' },
+  ];
+
+  const BB_TYPE_COLORS = {
+    player_pick:  { bg:'#E8F4EF', color:'#1B4332' },
+    number_guess: { bg:'#EBF0FF', color:'#003399' },
+    yes_no:       { bg:'#FEF3CD', color:'#856404' },
+    over_under:   { bg:'#FCE8D5', color:'#8B3800' },
+    ranking:      { bg:'#F5E8FF', color:'#5A0099' },
+    head_to_head: { bg:'#FFEAEA', color:'#8B0000' },
+    dressing_room:{ bg:'#E8F9F0', color:'#0B6E3A' },
+  };
+
+  /* ── Helper: load bonus bets config from Firebase ─────────────── */
+  async function loadBonusBetsConfig(gid) {
+    const snap = await get(ref(db, `groups/${gid}/bonusBets`));
+    return snap.exists() ? snap.val() : {};
+  }
+
+  /* ── Helper: load my bonus bet picks ──────────────────────────── */
+  async function loadMyBonusBetPicks(gid, uid) {
+    const snap = await get(ref(db, `groups/${gid}/bonusBetPicks/${uid}`));
+    return snap.exists() ? snap.val() : {};
+  }
+
+  /* ── Helper: load all member names for dressing room ─────────── */
+  async function loadMemberNames(gid) {
+    const gSnap = await get(ref(db, `groups/${gid}`));
+    if (!gSnap.exists()) return [];
+    const members = gSnap.val().members || {};
+    const results = await Promise.all(Object.keys(members).map(async uid => {
+      const uSnap = await get(ref(db, `users/${uid}`));
+      return { uid, name: uSnap.exists() ? uSnap.val().name : 'Unknown' };
+    }));
+    return results;
+  }
+
+  /* ── Render bonus bets in Picks tab ───────────────────────────── */
+  window.renderBonusBetsSection = async function() {
+    const section = document.getElementById('gs-bonus-bets-section');
+    if (!section) return;
+    const gid = window._group.id;
+    const g   = window._group.data;
+    // Only for season + major_slam
+    if (g.format !== 'season' && g.format !== 'major_slam') { section.classList.add('hidden'); return; }
+
+    const uid = auth.currentUser?.uid;
+    const [config, myPicks, members] = await Promise.all([
+      loadBonusBetsConfig(gid),
+      loadMyBonusBetPicks(gid, uid),
+      loadMemberNames(gid),
+    ]);
+
+    // Filter to active bets
+    const activeBets = BB_CATALOG.filter(b => config[b.id]?.active);
+    if (!activeBets.length) { section.classList.add('hidden'); return; }
+    section.classList.remove('hidden');
+
+    const now = Date.now();
+    const globalDeadline = config._globalDeadline || null;
+
+    let html = `<div class="bonus-bets-header">
+      <div>
+        <div class="bonus-bets-header-title">⭐ Bonus Bets</div>
+        <div class="bonus-bets-header-sub">${activeBets.length} aktive Wetten — ganze Saison</div>
+      </div>
+    </div>`;
+
+    for (const bet of activeBets) {
+      const cfg        = config[bet.id] || {};
+      const pts        = cfg.points || 6;
+      const deadline   = cfg.deadline || globalDeadline;
+      const locked     = deadline ? now > deadline : false;
+      const resolved   = cfg.resolved || false;
+      const answer     = cfg.answer ?? null;
+      const myPick     = myPicks[bet.id] ?? null;
+      const hasMyPick  = myPick !== null && myPick !== '' && !(Array.isArray(myPick) && myPick.every(v => !v));
+      const tc         = BB_TYPE_COLORS[bet.type] || { bg:'#eee', color:'#333' };
+      const deadlineStr = deadline
+        ? new Date(deadline).toLocaleDateString('de-DE', { day:'numeric', month:'short', year:'numeric' }) + ', ' + new Date(deadline).toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' })
+        : 'Keine Deadline';
+
+      // Check if user won
+      let resolvedHtml = '';
+      if (resolved && answer !== null) {
+        const won = checkBonusBetWin(bet, myPick, answer, members);
+        resolvedHtml = won
+          ? `<div class="bb-resolved-win">✅ Richtig! +${pts} Punkte</div>`
+          : `<div class="bb-resolved-lose">❌ Leider falsch. Antwort: ${formatBBAnswer(bet, answer, members)}</div>`;
+      }
+
+      // Build input area
+      let inputHtml = '';
+      if (resolved) {
+        inputHtml = resolvedHtml;
+      } else if (hasMyPick) {
+        inputHtml = `
+          <div class="bb-saved-display">
+            <span class="bb-saved-value">${formatBBAnswer(bet, myPick, members)}</span>
+            <span class="bb-saved-pts">${pts} Pt</span>
+            ${!locked ? `<button class="bb-saved-edit" onclick="editBonusBetPick('${bet.id}')">ändern</button>` : ''}
+          </div>`;
+        if (locked) inputHtml += `<div class="bb-deadline" style="font-size:11px;color:rgba(201,168,76,0.75);margin-top:6px;">🔒 Abgabe geschlossen</div>`;
+      } else if (locked) {
+        inputHtml = `<div class="bb-locked-bar">🔒 Deadline abgelaufen — keine Abgabe mehr möglich</div>`;
+      } else {
+        inputHtml = buildBBInput(bet, myPick, members, uid);
+        inputHtml += `<button class="bb-save-btn" onclick="saveBonusBetPick('${bet.id}')">Tipp speichern</button>`;
+      }
+
+      html += `
+        <div class="bonus-bet-card" id="bb-card-${bet.id}">
+          <div class="bonus-bet-type-tag">${bet.typeLabel}</div>
+          <div class="bonus-bet-name">${escHtml(bet.name)}</div>
+          <div class="bonus-bet-pts">${bet.desc} · ${pts} Punkte</div>
+          ${inputHtml}
+          ${!resolved ? `<div class="bonus-bet-deadline">⏰ Deadline: ${deadlineStr}</div>` : ''}
+        </div>`;
+    }
+
+    section.innerHTML = html;
+  };
+
+  /* ── Build input HTML per bet type ───────────────────────────── */
+  function buildBBInput(bet, currentVal, members, myUid) {
+    const val = currentVal;
+    switch (bet.type) {
+      case 'player_pick':
+        return `<input class="bb-input" id="bb-input-${bet.id}" placeholder="Spielername eingeben…" value="${escHtml(val||'')}" />`;
+
+      case 'number_guess':
+        return `<input class="bb-input" id="bb-input-${bet.id}" type="number" placeholder="Zahl eingeben (${bet.unit||''})…" value="${val||''}" style="appearance:none;-moz-appearance:textfield;" />`;
+
+      case 'yes_no': {
+        const yesS = val === 'yes' ? 'selected' : '';
+        const noS  = val === 'no'  ? 'selected' : '';
+        return `<div class="bb-btn-row">
+          <button class="bb-option-btn ${yesS}" id="bb-yes-${bet.id}" onclick="selectBBOption('${bet.id}','yes_no','yes')">✅ Ja</button>
+          <button class="bb-option-btn ${noS}"  id="bb-no-${bet.id}"  onclick="selectBBOption('${bet.id}','yes_no','no')">❌ Nein</button>
+        </div>
+        <input type="hidden" id="bb-input-${bet.id}" value="${val||''}" />`;
+      }
+
+      case 'over_under': {
+        const overS  = val === 'over'  ? 'selected' : '';
+        const underS = val === 'under' ? 'selected' : '';
+        const line   = bet.line || '?';
+        return `<div style="font-size:12px;color:rgba(245,240,232,0.6);margin-bottom:8px;">Linie: <strong style="color:var(--gold)">${line}</strong></div>
+        <div class="bb-btn-row">
+          <button class="bb-option-btn ${overS}"  id="bb-over-${bet.id}"  onclick="selectBBOption('${bet.id}','over_under','over')">📈 Over ${line}</button>
+          <button class="bb-option-btn ${underS}" id="bb-under-${bet.id}" onclick="selectBBOption('${bet.id}','over_under','under')">📉 Under ${line}</button>
+        </div>
+        <input type="hidden" id="bb-input-${bet.id}" value="${val||''}" />`;
+      }
+
+      case 'ranking': {
+        const slots  = bet.slots || 3;
+        const arr    = Array.isArray(val) ? val : Array(slots).fill('');
+        const labels = ['🥇','🥈','🥉','4.','5.'];
+        let rows = '';
+        for (let i = 0; i < slots; i++) {
+          rows += `<div class="bb-rank-row">
+            <span class="bb-rank-label">${labels[i]}</span>
+            <input class="bb-input" id="bb-rank-${bet.id}-${i}" placeholder="Spieler ${i+1}…" value="${escHtml(arr[i]||'')}" style="flex:1;" />
+          </div>`;
+        }
+        return `<div id="bb-ranking-wrap-${bet.id}">${rows}</div>
+        <input type="hidden" id="bb-input-${bet.id}" value="" />`;
+      }
+
+      case 'head_to_head': {
+        const aS = val === 'A' ? 'selected' : '';
+        const bS = val === 'B' ? 'selected' : '';
+        return `<div class="bb-btn-row">
+          <button class="bb-option-btn ${aS}" id="bb-optA-${bet.id}" onclick="selectBBOption('${bet.id}','head_to_head','A')">🅰 ${escHtml(bet.optA||'A')}</button>
+          <button class="bb-option-btn ${bS}" id="bb-optB-${bet.id}" onclick="selectBBOption('${bet.id}','head_to_head','B')">🅱 ${escHtml(bet.optB||'B')}</button>
+        </div>
+        <input type="hidden" id="bb-input-${bet.id}" value="${val||''}" />`;
+      }
+
+      case 'dressing_room': {
+        const others = members.filter(m => m.uid !== myUid);
+        const opts = others.map(m =>
+          `<option value="${escHtml(m.uid)}" ${val===m.uid?'selected':''}>${escHtml(m.name)}</option>`
+        ).join('');
+        return `<select class="bb-input" id="bb-input-${bet.id}" style="cursor:pointer;">
+          <option value="">— Mitspieler wählen —</option>
+          ${opts}
+        </select>`;
+      }
+
+      default:
+        return `<input class="bb-input" id="bb-input-${bet.id}" placeholder="Antwort eingeben…" value="${escHtml(val||'')}" />`;
+    }
+  }
+
+  /* ── Toggle button selection (yes_no / over_under / h2h) ──────── */
+  window.selectBBOption = function(betId, type, val) {
+    document.getElementById(`bb-input-${betId}`).value = val;
+    if (type === 'yes_no') {
+      document.getElementById(`bb-yes-${betId}`)?.classList.toggle('selected', val === 'yes');
+      document.getElementById(`bb-no-${betId}`)?.classList.toggle('selected', val === 'no');
+    } else if (type === 'over_under') {
+      document.getElementById(`bb-over-${betId}`)?.classList.toggle('selected', val === 'over');
+      document.getElementById(`bb-under-${betId}`)?.classList.toggle('selected', val === 'under');
+    } else if (type === 'head_to_head') {
+      document.getElementById(`bb-optA-${betId}`)?.classList.toggle('selected', val === 'A');
+      document.getElementById(`bb-optB-${betId}`)?.classList.toggle('selected', val === 'B');
+    }
+  };
+
+  /* ── Allow user to edit a saved pick ─────────────────────────── */
+  window.editBonusBetPick = async function(betId) {
+    const gid  = window._group.id;
+    const uid  = auth.currentUser?.uid;
+    const g    = window._group.data;
+    const [config, myPicks, members] = await Promise.all([
+      loadBonusBetsConfig(gid),
+      loadMyBonusBetPicks(gid, uid),
+      loadMemberNames(gid),
+    ]);
+    const bet  = BB_CATALOG.find(b => b.id === betId);
+    if (!bet) return;
+    const cfg       = config[betId] || {};
+    const pts       = cfg.points || 6;
+    const deadline  = cfg.deadline || config._globalDeadline || null;
+    const myPick    = myPicks[betId] ?? null;
+    const card      = document.getElementById(`bb-card-${betId}`);
+    if (!card) return;
+    // Replace content inside card (below the title/desc) with input
+    const inputArea = card.querySelector('.bb-saved-display');
+    if (inputArea) {
+      const wrap = document.createElement('div');
+      wrap.innerHTML = buildBBInput(bet, myPick, members, uid);
+      wrap.innerHTML += `<button class="bb-save-btn" onclick="saveBonusBetPick('${bet.id}')">Tipp speichern</button>`;
+      inputArea.replaceWith(...wrap.childNodes);
+    }
+  };
+
+  /* ── Save a bonus bet pick ────────────────────────────────────── */
+  window.saveBonusBetPick = async function(betId) {
+    const gid = window._group.id;
+    const uid = auth.currentUser?.uid;
+    const bet = BB_CATALOG.find(b => b.id === betId);
+    if (!bet || !uid) return;
+
+    let value;
+    if (bet.type === 'ranking') {
+      const slots = bet.slots || 3;
+      value = [];
+      for (let i = 0; i < slots; i++) {
+        value.push((document.getElementById(`bb-rank-${betId}-${i}`)?.value || '').trim());
+      }
+      if (value.every(v => !v)) { showToast('Bitte mindestens einen Spieler eintragen.', 'error'); return; }
+    } else {
+      value = (document.getElementById(`bb-input-${betId}`)?.value || '').trim();
+      if (!value) { showToast('Bitte eine Antwort eingeben.', 'error'); return; }
+    }
+
+    try {
+      await set(ref(db, `groups/${gid}/bonusBetPicks/${uid}/${betId}`), value);
+      showToast('Bonus Bet gespeichert! ⭐', 'success');
+      renderBonusBetsSection();
+    } catch(e) {
+      showToast('Fehler beim Speichern.', 'error');
+    }
+  };
+
+  /* ── Format answer for display ───────────────────────────────── */
+  function formatBBAnswer(bet, val, members) {
+    if (val === null || val === undefined || val === '') return '—';
+    switch (bet.type) {
+      case 'ranking':
+        return Array.isArray(val) ? val.filter(Boolean).join(' · ') : String(val);
+      case 'yes_no':
+        return val === 'yes' ? 'Ja ✅' : 'Nein ❌';
+      case 'over_under':
+        return val === 'over' ? `Over ${bet.line}` : `Under ${bet.line}`;
+      case 'head_to_head':
+        return val === 'A' ? (bet.optA || 'A') : (bet.optB || 'B');
+      case 'dressing_room': {
+        const m = (members||[]).find(m => m.uid === val);
+        return m ? m.name : val;
+      }
+      default:
+        return String(val);
+    }
+  }
+
+  /* ── Check if user's pick is correct ─────────────────────────── */
+  function checkBonusBetWin(bet, myPick, answer, members) {
+    if (myPick === null || myPick === undefined || myPick === '') return false;
+    switch (bet.type) {
+      case 'player_pick':
+        return myPick.trim().toLowerCase() === String(answer).trim().toLowerCase();
+      case 'number_guess':
+        // Winner = closest number; we just check exact match here, admin resolves manually
+        return String(myPick).trim() === String(answer).trim();
+      case 'yes_no':
+      case 'over_under':
+      case 'head_to_head':
+        return myPick === answer;
+      case 'ranking': {
+        if (!Array.isArray(myPick) || !Array.isArray(answer)) return false;
+        return answer.every((a, i) => (myPick[i]||'').toLowerCase() === (a||'').toLowerCase());
+      }
+      case 'dressing_room':
+        return myPick === answer;
+      default:
+        return String(myPick).toLowerCase() === String(answer).toLowerCase();
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     ADMIN MODAL — Open / Configure / Resolve
+  ═══════════════════════════════════════════════════════════════ */
+
+  window.openBonusBetsAdminModal = async function() {
+    const gid = window._group.id;
+    window._bbAdminConfig = await loadBonusBetsConfig(gid);
+    window._bbAdminConfig._gid = gid;
+
+    // Set global deadline input
+    const gd = window._bbAdminConfig._globalDeadline;
+    if (gd) {
+      const d = new Date(gd);
+      const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0,16);
+      document.getElementById('bb-global-deadline').value = local;
+    }
+
+    switchBBAdminTab('config');
+    openModal('bonus-bets-admin-modal');
+  };
+
+  window.switchBBAdminTab = function(tab) {
+    document.getElementById('bb-admin-panel-config').classList.toggle('hidden', tab !== 'config');
+    document.getElementById('bb-admin-panel-resolve').classList.toggle('hidden', tab !== 'resolve');
+    document.getElementById('bb-admin-tab-config').style.background  = tab === 'config'  ? 'var(--green)' : 'transparent';
+    document.getElementById('bb-admin-tab-config').style.color       = tab === 'config'  ? 'var(--cream)' : 'var(--text-mid)';
+    document.getElementById('bb-admin-tab-resolve').style.background = tab === 'resolve' ? 'var(--green)' : 'transparent';
+    document.getElementById('bb-admin-tab-resolve').style.color      = tab === 'resolve' ? 'var(--cream)' : 'var(--text-mid)';
+    if (tab === 'config')  renderBBAdminConfigList();
+    if (tab === 'resolve') renderBBAdminResolveList();
+  };
+
+  function renderBBAdminConfigList() {
+    const list = document.getElementById('bb-admin-bets-list');
+    if (!list) return;
+    const cfg = window._bbAdminConfig || {};
+
+    list.innerHTML = BB_CATALOG.map(bet => {
+      const betCfg  = cfg[bet.id] || {};
+      const active  = betCfg.active || false;
+      const pts     = betCfg.points ?? 6;
+      const deadline = betCfg.deadline ? new Date(betCfg.deadline - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16) : '';
+      const tc      = BB_TYPE_COLORS[bet.type] || { bg:'#eee', color:'#333' };
+      return `
+        <div class="bb-admin-bet-row ${active ? 'active-bet' : ''}" id="bb-admin-row-${bet.id}">
+          <div class="bb-admin-bet-row-top">
+            <label class="bb-admin-toggle">
+              <input type="checkbox" id="bb-toggle-${bet.id}" ${active ? 'checked' : ''} onchange="toggleBBBet('${bet.id}', this.checked)" />
+              <span class="bb-admin-toggle-slider"></span>
+            </label>
+            <div style="flex:1;">
+              <div class="bb-admin-bet-name">${escHtml(bet.name)}</div>
+              <span class="bb-admin-bet-type-tag" style="background:${tc.bg};color:${tc.color};">${bet.typeLabel}</span>
+            </div>
+          </div>
+          <div class="bb-admin-bet-settings" id="bb-admin-settings-${bet.id}" style="${active ? '' : 'display:none;'}">
+            <div style="flex:1;">
+              <label>Punkte</label>
+              <input type="number" id="bb-pts-${bet.id}" value="${pts}" min="1" max="100" style="width:80px;" />
+            </div>
+            <div style="flex:2;">
+              <label>Eigene Deadline (optional)</label>
+              <input type="datetime-local" id="bb-dl-${bet.id}" value="${deadline}" />
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  window.toggleBBBet = function(betId, active) {
+    const row      = document.getElementById(`bb-admin-row-${betId}`);
+    const settings = document.getElementById(`bb-admin-settings-${betId}`);
+    if (row)      row.classList.toggle('active-bet', active);
+    if (settings) settings.style.display = active ? '' : 'none';
+    if (!window._bbAdminConfig[betId]) window._bbAdminConfig[betId] = {};
+    window._bbAdminConfig[betId].active = active;
+  };
+
+  function renderBBAdminResolveList() {
+    const list = document.getElementById('bb-admin-resolve-list');
+    if (!list) return;
+    const cfg = window._bbAdminConfig || {};
+    const activeBets = BB_CATALOG.filter(b => cfg[b.id]?.active);
+    if (!activeBets.length) {
+      list.innerHTML = '<div style="font-size:13px;color:var(--text-light);padding:8px 0;">Keine aktiven Bonus Bets.</div>';
+      return;
+    }
+    list.innerHTML = activeBets.map(bet => {
+      const betCfg  = cfg[bet.id] || {};
+      const resolved = betCfg.resolved || false;
+      const answer   = betCfg.answer ?? '';
+      let inputHtml;
+      if (bet.type === 'yes_no') {
+        const yS = answer === 'yes' ? 'selected' : '';
+        const nS = answer === 'no'  ? 'selected' : '';
+        inputHtml = `<div style="display:flex;gap:8px;margin-top:6px;">
+          <button class="bb-option-btn ${yS}" style="flex:1;padding:7px;border-radius:8px;border:1.5px solid var(--cream-deeper);background:${yS?'var(--green-subtle)':'transparent'};color:${yS?'var(--green)':'var(--text-mid)'};font-size:12px;font-weight:700;cursor:pointer;" onclick="this.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('selected'));this.classList.add('selected');document.getElementById('bb-res-${bet.id}').value='yes'">✅ Ja</button>
+          <button class="bb-option-btn ${nS}" style="flex:1;padding:7px;border-radius:8px;border:1.5px solid var(--cream-deeper);background:${nS?'var(--green-subtle)':'transparent'};color:${nS?'var(--green)':'var(--text-mid)'};font-size:12px;font-weight:700;cursor:pointer;" onclick="this.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('selected'));this.classList.add('selected');document.getElementById('bb-res-${bet.id}').value='no'">❌ Nein</button>
+        </div>
+        <input type="hidden" id="bb-res-${bet.id}" value="${answer}" />`;
+      } else if (bet.type === 'over_under') {
+        const oS = answer === 'over'  ? 'selected' : '';
+        const uS = answer === 'under' ? 'selected' : '';
+        inputHtml = `<div style="display:flex;gap:8px;margin-top:6px;">
+          <button style="flex:1;padding:7px;border-radius:8px;border:1.5px solid var(--cream-deeper);background:${oS?'var(--green-subtle)':'transparent'};font-size:12px;font-weight:700;cursor:pointer;" onclick="document.getElementById('bb-res-${bet.id}').value='over'">📈 Over</button>
+          <button style="flex:1;padding:7px;border-radius:8px;border:1.5px solid var(--cream-deeper);background:${uS?'var(--green-subtle)':'transparent'};font-size:12px;font-weight:700;cursor:pointer;" onclick="document.getElementById('bb-res-${bet.id}').value='under'">📉 Under</button>
+        </div>
+        <input type="hidden" id="bb-res-${bet.id}" value="${answer}" />`;
+      } else if (bet.type === 'head_to_head') {
+        const aS = answer === 'A' ? 'selected' : '';
+        const bS = answer === 'B' ? 'selected' : '';
+        inputHtml = `<div style="display:flex;gap:8px;margin-top:6px;">
+          <button style="flex:1;padding:7px;border-radius:8px;border:1.5px solid var(--cream-deeper);font-size:12px;font-weight:700;cursor:pointer;background:${aS?'var(--green-subtle)':'transparent'};" onclick="document.getElementById('bb-res-${bet.id}').value='A'">🅰 ${escHtml(bet.optA||'A')}</button>
+          <button style="flex:1;padding:7px;border-radius:8px;border:1.5px solid var(--cream-deeper);font-size:12px;font-weight:700;cursor:pointer;background:${bS?'var(--green-subtle)':'transparent'};" onclick="document.getElementById('bb-res-${bet.id}').value='B'">🅱 ${escHtml(bet.optB||'B')}</button>
+        </div>
+        <input type="hidden" id="bb-res-${bet.id}" value="${answer}" />`;
+      } else if (bet.type === 'ranking') {
+        const slots  = bet.slots || 3;
+        const arr    = Array.isArray(answer) ? answer : Array(slots).fill('');
+        const labels = ['🥇','🥈','🥉'];
+        inputHtml = Array(slots).fill(0).map((_, i) =>
+          `<div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+            <span style="min-width:24px;font-size:13px;">${labels[i]}</span>
+            <input id="bb-res-rank-${bet.id}-${i}" value="${escHtml(arr[i]||'')}" placeholder="Spieler ${i+1}…" style="flex:1;padding:7px 10px;border-radius:8px;border:1.5px solid var(--cream-deeper);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;" />
+          </div>`
+        ).join('') + `<input type="hidden" id="bb-res-${bet.id}" value="" />`;
+      } else {
+        inputHtml = `<input id="bb-res-${bet.id}" value="${escHtml(Array.isArray(answer)?answer.join(', '):String(answer))}" placeholder="Richtiges Ergebnis…" style="width:100%;padding:8px 11px;border-radius:8px;border:1.5px solid var(--cream-deeper);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;margin-top:6px;" />`;
+      }
+      return `
+        <div class="bb-resolve-row">
+          <div class="bb-r-name">${escHtml(bet.name)} ${resolved ? '✅' : ''}</div>
+          ${inputHtml}
+          <button onclick="resolveBonusBet('${bet.id}')" style="margin-top:8px;padding:7px 16px;border-radius:8px;border:none;background:var(--green);color:var(--cream);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">
+            ${resolved ? '↻ Neu auflösen' : '✅ Auflösen & Punkte vergeben'}
+          </button>
+        </div>`;
+    }).join('');
+  }
+
+  /* ── Save bonus bets config ───────────────────────────────────── */
+  window.saveBonusBetsConfig = async function() {
+    const gid  = window._group.id;
+    const cfg  = window._bbAdminConfig || {};
+    // Collect values from DOM
+    const gdVal = document.getElementById('bb-global-deadline')?.value;
+    const updates = { _globalDeadline: gdVal ? new Date(gdVal).getTime() : null };
+
+    BB_CATALOG.forEach(bet => {
+      const active = document.getElementById(`bb-toggle-${bet.id}`)?.checked || false;
+      const ptsEl  = document.getElementById(`bb-pts-${bet.id}`);
+      const dlEl   = document.getElementById(`bb-dl-${bet.id}`);
+      const pts    = ptsEl ? (parseInt(ptsEl.value) || 6) : (cfg[bet.id]?.points || 6);
+      const dl     = dlEl?.value ? new Date(dlEl.value).getTime() : null;
+      updates[bet.id] = {
+        ...(cfg[bet.id] || {}),
+        active,
+        points: pts,
+        deadline: dl,
+      };
+    });
+
+    try {
+      await set(ref(db, `groups/${gid}/bonusBets`), updates);
+      showToast('Bonus Bets gespeichert! ⭐', 'success');
+      closeModal('bonus-bets-admin-modal');
+      renderBonusBetsSection();
+    } catch(e) {
+      showToast('Fehler beim Speichern.', 'error');
+    }
+  };
+
+  /* ── Resolve a single bonus bet & award points ────────────────── */
+  window.resolveBonusBet = async function(betId) {
+    const gid  = window._group.id;
+    const bet  = BB_CATALOG.find(b => b.id === betId);
+    if (!bet) return;
+    const cfg  = window._bbAdminConfig || {};
+    const pts  = cfg[betId]?.points || 6;
+
+    // Read answer from DOM
+    let answer;
+    if (bet.type === 'ranking') {
+      const slots = bet.slots || 3;
+      answer = [];
+      for (let i = 0; i < slots; i++) {
+        answer.push((document.getElementById(`bb-res-rank-${betId}-${i}`)?.value || '').trim());
+      }
+    } else {
+      answer = (document.getElementById(`bb-res-${betId}`)?.value || '').trim();
+    }
+    if (!answer || (Array.isArray(answer) && answer.every(v => !v))) {
+      showToast('Bitte Antwort eintragen.', 'error'); return;
+    }
+
+    // Load all picks for this bet
+    const g = window._group.data;
+    const members = g.members || {};
+    const memberNames = await loadMemberNames(gid);
+
+    // Load all picks
+    const allPicksSnap = await get(ref(db, `groups/${gid}/bonusBetPicks`));
+    const allPicks     = allPicksSnap.exists() ? allPicksSnap.val() : {};
+
+    // Determine winners
+    const winners = [];
+    for (const uid of Object.keys(members)) {
+      const userPick = allPicks[uid]?.[betId] ?? null;
+      if (userPick === null) continue;
+      const won = checkBonusBetWin(bet, userPick, answer, memberNames);
+      if (won) winners.push(uid);
+    }
+
+    // Award season points
+    if (winners.length > 0) {
+      const updates = {};
+      for (const uid of winners) {
+        const mName = memberNames.find(m => m.uid === uid)?.name || uid;
+        const spSnap = await get(ref(db, `groups/${gid}/seasonPoints/${uid}`));
+        const sp = spSnap.exists() ? spSnap.val() : { points: 0, wins: 0, name: mName };
+        updates[`groups/${gid}/seasonPoints/${uid}`] = {
+          ...sp,
+          name: mName,
+          points: (sp.points || 0) + pts,
+          wins: (sp.wins || 0) + 1,
+        };
+      }
+      await update(ref(db), updates);
+    }
+
+    // Mark as resolved in config
+    await update(ref(db, `groups/${gid}/bonusBets/${betId}`), {
+      resolved: true,
+      answer,
+      resolvedAt: Date.now(),
+      winnersCount: winners.length,
+    });
+
+    // Update local cache
+    if (!window._bbAdminConfig[betId]) window._bbAdminConfig[betId] = {};
+    window._bbAdminConfig[betId].resolved = true;
+    window._bbAdminConfig[betId].answer   = answer;
+
+    const winnerNames = winners.map(uid => memberNames.find(m => m.uid === uid)?.name || uid).join(', ');
+    showToast(`Aufgelöst! ${winners.length} Gewinner: ${winnerNames || 'niemand'} · +${pts} Pt`, 'success');
+    renderBBAdminResolveList();
+    renderSeasonStandings();
+  };
+
+  /* ── Show/hide admin bonus bets button in banner ─────────────── */
+  function updateBonusBetsAdminBtn() {
+    const g        = window._group?.data;
+    const uid      = auth.currentUser?.uid;
+    const isOwner  = uid === g?.ownerId || window._state?.isSuperadmin;
+    const isSeason = g?.format === 'season' || g?.format === 'major_slam';
+    const btn      = document.getElementById('gs-bonus-bets-admin-btn');
+    if (btn) btn.classList.toggle('hidden', !isOwner || !isSeason);
+  }
+
+  /* ── Bonus bets section in Season Standings ───────────────────── */
+  async function renderBonusBetsInStandings(gid) {
+    const uid = auth.currentUser?.uid;
+    const [config, allPicksSnap, memberNames] = await Promise.all([
+      loadBonusBetsConfig(gid),
+      get(ref(db, `groups/${gid}/bonusBetPicks`)),
+      loadMemberNames(gid),
+    ]);
+    const allPicks  = allPicksSnap.exists() ? allPicksSnap.val() : {};
+    const activeBets = BB_CATALOG.filter(b => config[b.id]?.active);
+    if (!activeBets.length) return '';
+
+    const now = Date.now();
+    const globalDeadline = config._globalDeadline || null;
+
+    let html = `<div class="bb-season-card">
+      <div class="bb-season-card-title">⭐ Bonus Bets</div>`;
+
+    for (const bet of activeBets) {
+      const cfg      = config[bet.id] || {};
+      const pts      = cfg.points || 6;
+      const resolved = cfg.resolved || false;
+      const answer   = cfg.answer ?? null;
+      const deadline = cfg.deadline || globalDeadline;
+      const deadlinePassed = deadline ? now > deadline : false;
+
+      // Build pick rows — hide others until deadline passed (unless resolved)
+      const pickRows = memberNames.map(m => {
+        const isMe = m.uid === uid;
+        const pick = allPicks[m.uid]?.[bet.id] ?? null;
+
+        // Own pick: always show
+        // Others: only show after deadline or resolution
+        if (!isMe && !deadlinePassed && !resolved) {
+          return `<div class="bb-season-pick-row">
+            <span class="bb-season-pick-name">${escHtml(m.name)}</span>
+            <span style="font-size:11px;color:rgba(245,240,232,0.25);">🔒</span>
+          </div>`;
+        }
+
+        if (pick === null) {
+          return `<div class="bb-season-pick-row">
+            <span class="bb-season-pick-name">${escHtml(m.name)}${isMe ? ' (du)' : ''}</span>
+            <span style="font-size:11px;color:rgba(245,240,232,0.3);">—</span>
+          </div>`;
+        }
+
+        const displayVal = formatBBAnswer(bet, pick, memberNames);
+        let result = '';
+        if (resolved && answer !== null) {
+          const won = checkBonusBetWin(bet, pick, answer, memberNames);
+          result = won
+            ? `<span style="color:#7FFFA8;font-size:11px;font-weight:700;">+${pts} Pt ✅</span>`
+            : `<span style="color:rgba(245,240,232,0.4);font-size:11px;">❌</span>`;
+        }
+        return `<div class="bb-season-pick-row">
+          <span class="bb-season-pick-name">${escHtml(m.name)}${isMe ? ' (du)' : ''}</span>
+          <span style="font-size:12px;color:rgba(245,240,232,0.75);">${escHtml(displayVal)}</span>
+          ${result}
+        </div>`;
+      }).join('');
+
+      const resolvedBadge = resolved
+        ? `<span style="font-size:10px;background:rgba(39,174,96,0.25);color:#7FFFA8;padding:2px 7px;border-radius:20px;font-weight:700;">✅ Aufgelöst: ${escHtml(formatBBAnswer(bet, answer, memberNames))}</span>`
+        : deadlinePassed
+        ? `<span style="font-size:10px;background:rgba(255,255,255,0.12);color:rgba(245,240,232,0.6);padding:2px 7px;border-radius:20px;font-weight:700;">🔒 Abgabe zu · ${pts} Pt</span>`
+        : `<span style="font-size:10px;background:rgba(201,168,76,0.2);color:rgba(201,168,76,0.9);padding:2px 7px;border-radius:20px;font-weight:700;">⏳ Offen · ${pts} Pt</span>`;
+
+      html += `<div class="bb-season-bet-row">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+          <div class="bb-season-bet-name">${escHtml(bet.name)}</div>
+          ${resolvedBadge}
+        </div>
+        ${pickRows}
+      </div>`;
+    }
+
+    html += '</div>';
+    return html;
+  }
+
+  /* ── Hook into renderPicksTab to also render bonus bets ──────── */
+  const _origRenderPicksTab = window.renderPicksTab;
+  window.renderPicksTab = async function() {
+    if (_origRenderPicksTab) await _origRenderPicksTab();
+    renderBonusBetsSection();
+  };
+
+  /* ── Hook into openGroupScreen to show admin button ──────────── */
+  const _origOpenGroup = window.openGroupScreen;
+  window.openGroupScreen = async function(gid) {
+    await _origOpenGroup(gid);
+    updateBonusBetsAdminBtn();
+  };
+
+  let deferredPrompt;  window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
     document.getElementById('pwa-install-btn')?.classList.remove('hidden');
@@ -4490,88 +5235,47 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
   window.addEventListener('appinstalled', () => {
     document.getElementById('pwa-install-btn')?.classList.add('hidden');
   });
-
-  /* ----------------------------------------------------------
-     EMAILJS — PICK REMINDERS
-  ---------------------------------------------------------- */
-  const EMAILJS_SERVICE_ID  = 'service_s1rb86i';
-  const EMAILJS_TEMPLATE_ID = 'template_mjqmtih';
-  // emailjs is a global from the regular <script> tag — use window.emailjs in module scope
-  window.addEventListener('load', () => {
-    if (window.emailjs) window.emailjs.init({ publicKey: 'A0RPCxH97TpZRRtbU' });
-  });
-
-  window.sendPickReminders = async () => {
-    const btn    = document.getElementById('gs-remind-btn');
-    const infoEl = document.getElementById('gs-remind-info');
-    const gid    = window._group.id;
-    const g      = window._group.data;
-    const memberUids = Object.keys(g.members || {});
-
-    btn.disabled    = true;
-    btn.textContent = '⏳ Sende Reminders...';
-    infoEl.textContent = '';
-
-    try {
-      // Fetch picks and all member user-data in parallel
-      const _get = window._fbGet;
-      const _ref = window._fbRef;
-      const _db  = window._fbDb;
-      const [picksSnap, ...userSnaps] = await Promise.all([
-        _get(_ref(_db, `groups/${gid}/picks`)),
-        ...memberUids.map(uid => _get(_ref(_db, `users/${uid}`)))
-      ]);
-      const picksData = picksSnap.exists() ? picksSnap.val() : {};
-
-      // Build member list and filter to those without picks who have an email
-      const missing = memberUids
-        .map((uid, i) => ({ uid, ...(userSnaps[i].exists() ? userSnaps[i].val() : {}) }))
-        .filter(m => m.email && !picksData[m.uid]);
-
-      const deadlineTs = g.deadlineTimestamp;
-      const deadlineStr = deadlineTs
-        ? new Date(deadlineTs).toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' }) + ', 22:00 CET'
-        : 'bald';
-      const tournamentName = g.activeTournament?.name || g.name || 'WYNN';
-
-      if (missing.length === 0) {
-        infoEl.textContent = '✅ Alle haben bereits ihre Picks eingereicht!';
-        btn.textContent = '🔔 Picks Reminder senden';
-        return;
-      }
-
-      let sent = 0, failed = 0;
-      for (const member of missing) {
-        try {
-          await window.emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-            to_email:        member.email,
-            tournament_name: tournamentName,
-            deadline:        deadlineStr,
-          });
-          sent++;
-        } catch (e) {
-          console.warn('[WYNN] EmailJS failed for', member.email, e);
-          failed++;
-        }
-      }
-
-      btn.textContent = '🔔 Picks Reminder senden';
-      if (failed === 0) {
-        showToast(`✅ ${sent} Reminder gesendet!`, 'success');
-        infoEl.textContent = `✅ ${sent} Reminder erfolgreich gesendet`;
-      } else {
-        showToast(`⚠️ ${sent} gesendet, ${failed} fehlgeschlagen`, 'error');
-        infoEl.textContent = `${sent} gesendet, ${failed} fehlgeschlagen`;
-        btn.disabled = false;
-      }
-    } catch (err) {
-      console.error('[WYNN] sendPickReminders error:', err);
-      showToast('Fehler beim Senden der Reminder.', 'error');
-      btn.textContent = '🔔 Picks Reminder senden';
-      btn.disabled = false;
-    }
-  };
 </script>
+
+<!-- ============================================================
+     BONUS BETS ADMIN MODAL
+============================================================ -->
+<div id="bonus-bets-admin-modal" class="modal-overlay" onclick="closeModalOnOverlay(event,'bonus-bets-admin-modal')">
+  <div class="modal" style="max-height:88vh;display:flex;flex-direction:column;">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⭐ Bonus Bets verwalten</div>
+    <div style="flex:1;overflow-y:auto;padding:0 20px 20px;">
+      <!-- Global Deadline -->
+      <div style="background:var(--cream-dark);border-radius:var(--radius);padding:12px 14px;margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-light);margin-bottom:8px;">⏰ Globale Deadline (für alle aktiven Wetten)</div>
+        <input type="datetime-local" id="bb-global-deadline" style="width:100%;padding:8px 11px;border-radius:8px;border:1.5px solid var(--cream-deeper);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;" />
+        <div style="font-size:11px;color:var(--text-light);margin-top:5px;">Einzelne Wetten können eigene Deadlines überschreiben.</div>
+      </div>
+
+      <!-- Tabs: Configure / Resolve -->
+      <div style="display:flex;gap:0;border-radius:10px;overflow:hidden;border:1.5px solid var(--cream-deeper);margin-bottom:16px;">
+        <button id="bb-admin-tab-config" onclick="switchBBAdminTab('config')" style="flex:1;padding:9px;border:none;background:var(--green);color:var(--cream);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">🎛️ Konfigurieren</button>
+        <button id="bb-admin-tab-resolve" onclick="switchBBAdminTab('resolve')" style="flex:1;padding:9px;border:none;background:transparent;color:var(--text-mid);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">✅ Auflösen</button>
+      </div>
+
+      <!-- Panel: Configure -->
+      <div id="bb-admin-panel-config">
+        <div id="bb-admin-bets-list"></div>
+      </div>
+
+      <!-- Panel: Resolve -->
+      <div id="bb-admin-panel-resolve" class="hidden">
+        <div style="font-size:12px;color:var(--text-light);margin-bottom:12px;">Trage das richtige Ergebnis ein — Punkte werden automatisch vergeben.</div>
+        <div id="bb-admin-resolve-list"></div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn-secondary" style="flex:1" onclick="closeModal('bonus-bets-admin-modal')">Abbrechen</button>
+        <button class="btn btn-primary" style="flex:2" onclick="saveBonusBetsConfig()">💾 Speichern</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
