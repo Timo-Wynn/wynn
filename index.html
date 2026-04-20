@@ -1197,23 +1197,18 @@
     /* ============================================================
        BONUS BETS
     ============================================================ */
-    .bonus-bets-section { margin-top: 20px; }
-    .bonus-bets-header  { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-    .bonus-bets-header-title { font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 900; color: var(--green); }
+    .bonus-bets-section { margin-top: 24px; }
+    .bonus-bets-header  { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+    .bonus-bets-header-title { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 900; color: var(--green); }
     .bonus-bets-header-sub { font-size: 11px; color: var(--text-light); }
-    /* Card: more compact, side-by-side label row */
-    .bonus-bet-card { background: linear-gradient(135deg, #1B4332 0%, #2D6A4F 100%); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px; color: var(--cream); position: relative; overflow: hidden; }
-    .bonus-bet-card::before { content:''; position:absolute; top:-20px; right:-20px; width:70px; height:70px; border-radius:50%; background:rgba(201,168,76,0.10); pointer-events:none; }
-    /* Top meta row: type-tag left, pts badge right */
-    .bonus-bet-meta-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:3px; }
-    .bonus-bet-type-tag { display:inline-block; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; padding:2px 6px; border-radius:20px; background:rgba(201,168,76,0.22); color:rgba(201,168,76,0.95); }
-    .bonus-bet-pts-badge { font-size:9px; font-weight:700; color:rgba(201,168,76,0.8); letter-spacing:0.04em; }
-    .bonus-bet-name { font-family:'Playfair Display',serif; font-size:13px; font-weight:900; margin-bottom:1px; line-height:1.3; }
-    .bonus-bet-desc { font-size:10px; color:rgba(245,240,232,0.45); margin-bottom:7px; }
-    .bonus-bet-pts  { display:none; } /* hidden — pts now shown in meta row */
-    .bonus-bet-deadline { font-size:9px; color:rgba(201,168,76,0.6); margin-top:5px; }
+    .bonus-bet-card { background: linear-gradient(135deg, #1B4332 0%, #2D6A4F 100%); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 10px; color: var(--cream); position: relative; overflow: hidden; }
+    .bonus-bet-card::before { content:''; position:absolute; top:-24px; right:-24px; width:90px; height:90px; border-radius:50%; background:rgba(201,168,76,0.13); pointer-events:none; }
+    .bonus-bet-type-tag { display:inline-block; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; padding:2px 7px; border-radius:20px; background:rgba(201,168,76,0.22); color:rgba(201,168,76,0.95); margin-bottom:4px; }
+    .bonus-bet-name { font-family:'Playfair Display',serif; font-size:14px; font-weight:900; margin-bottom:2px; line-height:1.3; }
+    .bonus-bet-pts  { font-size:11px; color:rgba(245,240,232,0.55); margin-bottom:10px; }
+    .bonus-bet-deadline { font-size:10px; color:rgba(201,168,76,0.7); margin-top:6px; }
     /* inputs */
-    .bb-input { width:100%; padding:7px 10px; border-radius:8px; border:1.5px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.10); color:var(--cream); font-family:'DM Sans',sans-serif; font-size:12px; font-weight:600; outline:none; transition:var(--transition); }
+    .bb-input { width:100%; padding:8px 12px; border-radius:9px; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.10); color:var(--cream); font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600; outline:none; transition:var(--transition); }
     .bb-input::placeholder { color:rgba(245,240,232,0.35); font-weight:400; }
     .bb-input:focus { border-color:rgba(201,168,76,0.65); background:rgba(255,255,255,0.16); }
     .bb-input:disabled, .bb-btn-row button:disabled { opacity:0.5; cursor:not-allowed; }
@@ -1221,25 +1216,25 @@
     select.bb-input { color: var(--text-dark); background: rgba(255,255,255,0.92); border-color: rgba(255,255,255,0.3); }
     select.bb-input option { color: var(--text-dark); background: #fff; }
     /* yes/no + over/under buttons */
-    .bb-btn-row { display:flex; gap:6px; }
-    .bb-option-btn { flex:1; padding:7px 6px; border-radius:8px; border:1.5px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.08); color:rgba(245,240,232,0.7); font-family:'DM Sans',sans-serif; font-size:12px; font-weight:700; cursor:pointer; transition:var(--transition); }
+    .bb-btn-row { display:flex; gap:8px; }
+    .bb-option-btn { flex:1; padding:9px; border-radius:10px; border:2px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.08); color:rgba(245,240,232,0.7); font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700; cursor:pointer; transition:var(--transition); }
     .bb-option-btn.selected { border-color:var(--gold); background:rgba(201,168,76,0.25); color:var(--gold); }
     /* ranking rows */
-    .bb-rank-row { display:flex; align-items:center; gap:7px; margin-bottom:5px; }
-    .bb-rank-label { font-size:11px; font-weight:700; color:var(--gold); min-width:22px; }
+    .bb-rank-row { display:flex; align-items:center; gap:8px; margin-bottom:7px; }
+    .bb-rank-label { font-size:12px; font-weight:700; color:var(--gold); min-width:26px; }
     /* save button */
-    .bb-save-btn { margin-top:7px; width:100%; padding:7px; border-radius:8px; border:none; background:var(--gold); color:var(--green); font-family:'DM Sans',sans-serif; font-size:12px; font-weight:700; cursor:pointer; transition:var(--transition); }
+    .bb-save-btn { margin-top:10px; width:100%; padding:9px; border-radius:10px; border:none; background:var(--gold); color:var(--green); font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700; cursor:pointer; transition:var(--transition); }
     .bb-save-btn:hover { filter:brightness(1.07); }
     /* saved state */
-    .bb-saved-display { margin-top:6px; padding:7px 10px; border-radius:8px; background:rgba(255,255,255,0.10); display:flex; align-items:center; justify-content:space-between; gap:8px; }
-    .bb-saved-value { font-weight:700; font-size:12px; flex:1; }
-    .bb-saved-pts { font-family:'Playfair Display',serif; font-size:14px; font-weight:900; color:var(--gold); }
-    .bb-saved-edit { background:none; border:none; font-size:10px; color:rgba(245,240,232,0.45); cursor:pointer; text-decoration:underline; }
+    .bb-saved-display { margin-top:8px; padding:10px 13px; border-radius:10px; background:rgba(255,255,255,0.10); display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .bb-saved-value { font-weight:700; font-size:14px; flex:1; }
+    .bb-saved-pts { font-family:'Playfair Display',serif; font-size:18px; font-weight:900; color:var(--gold); }
+    .bb-saved-edit { background:none; border:none; font-size:11px; color:rgba(245,240,232,0.45); cursor:pointer; text-decoration:underline; }
     /* resolved */
-    .bb-resolved-win  { margin-top:6px; padding:7px 10px; border-radius:8px; background:rgba(39,174,96,0.2); border:1px solid rgba(39,174,96,0.45); font-size:12px; font-weight:700; color:#7FFFA8; }
-    .bb-resolved-lose { margin-top:6px; padding:7px 10px; border-radius:8px; background:rgba(255,255,255,0.07); font-size:12px; color:rgba(245,240,232,0.5); }
+    .bb-resolved-win  { margin-top:8px; padding:10px 13px; border-radius:10px; background:rgba(39,174,96,0.2); border:1px solid rgba(39,174,96,0.45); font-size:13px; font-weight:700; color:#7FFFA8; }
+    .bb-resolved-lose { margin-top:8px; padding:10px 13px; border-radius:10px; background:rgba(255,255,255,0.07); font-size:13px; color:rgba(245,240,232,0.5); }
     /* locked banner */
-    .bb-locked-bar { padding:7px 10px; border-radius:8px; background:rgba(255,255,255,0.08); font-size:11px; color:rgba(245,240,232,0.5); text-align:center; margin-top:4px; }
+    .bb-locked-bar { padding:9px 13px; border-radius:10px; background:rgba(255,255,255,0.08); font-size:12px; color:rgba(245,240,232,0.5); text-align:center; margin-top:4px; }
     /* admin modal bonus bet list */
     .bb-admin-bet-row { background:var(--white); border-radius:var(--radius); padding:13px 14px; margin-bottom:8px; border:2px solid var(--cream-deeper); transition:var(--transition); }
     .bb-admin-bet-row.active-bet { border-color:var(--green); }
@@ -1688,7 +1683,7 @@
       <!-- Tab: Saison-Wertung -->
       <div id="gs-tab-season" class="group-tab-panel hidden">
         <div style="font-size:12px;color:var(--text-light);margin-bottom:16px;background:var(--cream-dark);border-radius:10px;padding:10px 14px;">
-          🏆 <strong>Saison-Wertung:</strong> Normal = 1 Pt · Signature Event = 2 Pt · Major = 3 Pt · Bei Gleichstand werden Punkte geteilt.
+          🏆 <strong>Saison-Wertung:</strong> Normal: 3/2/1 Pt · Signature: 6/4/2 Pt · Major: 9/6/3 Pt · Bei Gleichstand werden die Punkte der betroffenen Plätze gleichmäßig aufgeteilt.
         </div>
         <div id="gs-season-standings">
           <div class="empty-state"><div class="empty-icon">🏆</div><p>Noch keine Ergebnisse.</p></div>
@@ -2474,6 +2469,17 @@
   }
   window.setActiveTournamentFromEl = function(el) {
     setActiveTournament(el.dataset.tid, el.dataset.tname, el.dataset.tdate || '');
+  };
+
+  window.removeFromSeason = async (tid) => {
+    if (!confirm('Turnier aus der Saison entfernen?\nDiese Aktion kann nicht rückgängig gemacht werden.')) return;
+    const gid = window._group.id;
+    const g   = window._group.data;
+    const updated = (g.seasonTournaments || []).filter(t => t.id !== tid);
+    await update(ref(db, `groups/${gid}`), { seasonTournaments: updated });
+    window._group.data.seasonTournaments = updated;
+    showToast('Turnier aus der Saison entfernt.', 'info');
+    renderHistory();
   };
 
   function emptyState(icon, text) {
@@ -3729,32 +3735,57 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
       await update(ref(db, `users/${r.uid}/stats`), { [gid + '_' + tid]: statEntry });
     }
 
-    // ── Season points: award to winner(s) ──
-    if (g.format === 'season' && winners.length > 0) {
-      // Find tournament type from seasonTournaments
-      const tData    = (g.seasonTournaments || []).find(t => t.id === tid);
-      const ttype    = tData?.ttype || 'normal';
-      const basePoints = ttype === 'major' ? 3 : ttype === 'signature' ? 2 : 1;
-      // Split points if tied winners (round to nearest 0.5)
-      const pointsEach = winners.length === 1 ? basePoints : Math.round((basePoints / winners.length) * 2) / 2;
+    // ── Season points: podium awards ──
+    if (g.format === 'season' && scored.length > 0) {
+      const tData  = (g.seasonTournaments || []).find(t => t.id === tid);
+      const ttype  = tData?.ttype || 'normal';
 
-      // Load current season points from Firebase
+      // Points per position (index 0 = 1st place, index 1 = 2nd, etc.)
+      const PODIUM = {
+        normal:    [3, 2, 1],
+        signature: [6, 4, 2],
+        major:     [9, 6, 3],
+      };
+      const podium = PODIUM[ttype] || [3, 2, 1];
+
+      // Group players by tied rank
+      const rankedGroups = [];
+      let gRank = 1, gi = 0;
+      while (gi < scored.length) {
+        let gj = gi;
+        while (gj < scored.length && scored[gj].total === scored[gi].total) gj++;
+        rankedGroups.push({ rank: gRank, players: scored.slice(gi, gj) });
+        gRank = gj + 1;
+        gi = gj;
+      }
+
       const spSnap = await get(ref(db, `groups/${gid}/seasonPoints`));
       const seasonPoints = spSnap.exists() ? spSnap.val() : {};
 
-      for (const w of winners) {
-        const current = seasonPoints[w.uid] || { name: w.name, points: 0, wins: 0 };
-        current.name   = w.name;
-        current.points = Math.round((current.points + pointsEach) * 10) / 10;
-        current.wins   = (current.wins || 0) + 1;
-        seasonPoints[w.uid] = current;
+      const podiumResults = [];
+      for (const group of rankedGroups) {
+        // Pool the points for all positions this group occupies, then split equally
+        const startIdx = group.rank - 1; // 0-indexed
+        let pooled = 0;
+        for (let pi = startIdx; pi < startIdx + group.players.length; pi++) {
+          pooled += (podium[pi] || 0);
+        }
+        const pts = Math.round((pooled / group.players.length) * 10) / 10;
+        if (!pts) continue;
+        for (const player of group.players) {
+          const current = seasonPoints[player.uid] || { name: player.name, points: 0, wins: 0 };
+          current.name   = player.name;
+          current.points = Math.round((current.points + pts) * 10) / 10;
+          if (group.rank === 1) current.wins = (current.wins || 0) + 1;
+          seasonPoints[player.uid] = current;
+          podiumResults.push({ uid: player.uid, name: player.name, rank: group.rank, points: pts });
+        }
       }
       await set(ref(db, `groups/${gid}/seasonPoints`), seasonPoints);
 
-      // Also save tournament result in season points history
       await set(ref(db, `groups/${gid}/seasonPoints/_history/${tid}`), {
-        name: activeTournament.name, ttype, basePoints,
-        winners: winners.map(w => ({ uid: w.uid, name: w.name, points: pointsEach })),
+        name: activeTournament.name, ttype, podium,
+        results: podiumResults,
         date: Date.now(),
       });
     }
@@ -4107,10 +4138,27 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
       const scored = all.filter(r => r.total !== null && r.total !== undefined && !isNaN(r.total)).sort((a,b) => a.total - b.total);
       const dnp    = all.filter(r => r.total === null || r.total === undefined || isNaN(r.total));
       if (!scored.length && !dnp.length) return '';
+
+      // Compute tied ranks
+      const tiedRanks = [];
+      let curRank = 1;
+      scored.forEach((r, i) => {
+        if (i > 0 && r.total === scored[i-1].total) {
+          tiedRanks.push(tiedRanks[i-1]);
+        } else {
+          tiedRanks.push(curRank);
+        }
+        curRank++;
+      });
+      const countAtRank = r => tiedRanks.filter(x => x === r).length;
+
       const rows = scored.map((r, i) => {
-        const isFirst = i === 0;
-        const isLast  = i === scored.length-1 && scored.length > 1 && r.total !== scored[0].total;
-        const sign    = isFirst ? '👑' : (isLast ? '💩' : `${i+1}.`);
+        const rank    = tiedRanks[i];
+        const isTied  = countAtRank(rank) > 1;
+        const isFirst = rank === 1;
+        const lastRank = tiedRanks[tiedRanks.length - 1];
+        const isLast  = rank === lastRank && scored.length > 1 && r.total !== scored[0].total;
+        const sign    = isFirst ? '👑' : (isLast ? '💩' : (isTied ? `T${rank}.` : `${rank}.`));
         const n = r.total;
         const scoreStr = n > 0 ? `+${n}` : n === 0 ? 'E' : String(n);
         const color    = n < 0 ? 'var(--success)' : n > 0 ? 'var(--error)' : 'var(--text-mid)';
@@ -4164,6 +4212,9 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
           ? `<div style="margin-top:8px;"><button class="btn btn-sm btn-secondary" style="font-size:11px;padding:5px 12px;"
                data-tid="${escHtml(t.id)}" data-tname="${escHtml(t.name)}" data-tdate="${escHtml(t.date||'')}"
                onclick="setActiveTournamentFromEl(this)">▶ Set Active</button></div>` : '';
+        const removeBtn = (isOwner && !isActive && !t.completed)
+          ? `<button onclick="removeFromSeason('${escHtml(t.id)}')"
+               style="background:none;border:none;font-size:11px;color:var(--error);cursor:pointer;padding:2px 0;margin-top:4px;text-decoration:underline;display:block;opacity:0.7;">✕ Aus Saison entfernen</button>` : '';
         const resetBtn = (isOwner && t.completed)
           ? `<button data-tid="${escHtml(t.id)}" onclick="resetCompletedTournament(this.dataset.tid)"
                style="background:none;border:none;font-size:11px;color:var(--text-light);cursor:pointer;padding:2px 0;margin-top:6px;text-decoration:underline;display:block;">↩ Zurücksetzen</button>` : '';
@@ -4173,7 +4224,7 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
             <div class="past-t-date">${dateStr}</div>
           </div>
           <div style="margin-top:4px;">${statusHtml}</div>
-          ${setActiveBtn}${resetBtn}
+          ${setActiveBtn}${removeBtn}${resetBtn}
         </div>`;
       }).join('');
       return;
@@ -4604,14 +4655,11 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
 
       html += `
         <div class="bonus-bet-card" id="bb-card-${bet.id}">
-          <div class="bonus-bet-meta-row">
-            <span class="bonus-bet-type-tag">${bet.typeLabel}</span>
-            <span class="bonus-bet-pts-badge">${pts} Pt</span>
-          </div>
+          <div class="bonus-bet-type-tag">${bet.typeLabel}</div>
           <div class="bonus-bet-name">${escHtml(bet.name)}</div>
-          <div class="bonus-bet-desc">${escHtml(bet.desc)}</div>
+          <div class="bonus-bet-pts">${bet.desc} · ${pts} Punkte</div>
           ${inputHtml}
-          ${!resolved ? `<div class="bonus-bet-deadline">⏰ ${deadlineStr}</div>` : ''}
+          ${!resolved ? `<div class="bonus-bet-deadline">⏰ Deadline: ${deadlineStr}</div>` : ''}
         </div>`;
     }
 
