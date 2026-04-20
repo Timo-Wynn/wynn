@@ -1537,37 +1537,47 @@
           <button onclick="leaveGroupScreen()">← Back</button>
         </div>
         <div class="group-title" id="gs-group-name">Group</div>
-        <h2 id="gs-tournament-name">Loading tournament...</h2>
-        <div class="t-meta">
-          <span id="gs-tournament-date">📅 —</span>
-          <span id="gs-tournament-location">📍 —</span>
-          <span id="gs-format-badge">🏆 —</span>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+          <h2 id="gs-tournament-name" style="flex:1;">Loading tournament...</h2>
+          <button onclick="openHowItWorksModal()" style="background:rgba(255,255,255,0.15);border:none;color:rgba(245,240,232,0.8);width:24px;height:24px;border-radius:50%;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;margin-top:4px;line-height:24px;text-align:center;padding:0;">?</button>
         </div>
-        <div class="deadline-chip" id="gs-deadline-chip">⏰ Deadline: Wed 22:00 CET</div>
-        <div id="gs-end-tournament-section" class="hidden" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
-          <button onclick="endTournament()" style="background:rgba(201,168,76,0.25);border:none;color:var(--cream);padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;">
-            🏁 End Tournament &amp; Save Results
-          </button>
-          <button onclick="deactivateTournament()" style="background:rgba(255,255,255,0.12);border:none;color:var(--cream);padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;">
-            ↩ Deaktivieren
-          </button>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:6px;">
+          <div class="t-meta" style="margin:0;">
+            <span id="gs-tournament-date">📅 —</span>
+            <span id="gs-tournament-location">📍 —</span>
+            <span id="gs-format-badge">🏆 —</span>
+          </div>
+          <!-- Admin buttons: compact, right-aligned -->
+          <div id="gs-end-tournament-section" class="hidden" style="display:flex;gap:6px;flex-shrink:0;">
+            <button onclick="endTournament()" style="background:rgba(201,168,76,0.25);border:none;color:var(--cream);padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">
+              🏁 End &amp; Save
+            </button>
+            <button onclick="deactivateTournament()" style="background:rgba(255,255,255,0.12);border:none;color:var(--cream);padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">
+              ↩
+            </button>
+          </div>
         </div>
+        <div class="deadline-chip" id="gs-deadline-chip" style="margin-top:8px;display:inline-block;">⏰ Deadline: Wed 22:00 CET</div>
+        <!-- Hidden mode text for ? modal -->
+        <div id="gs-mode-text" class="hidden"></div>
+      </div>
 
-        <!-- Mode description -->
-        <div id="gs-mode-description" style="margin-top:12px;background:rgba(255,255,255,0.10);border-radius:10px;padding:10px 14px;">
-          <div style="font-size:11px;font-weight:700;color:rgba(245,240,232,0.6);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:5px;">How it works</div>
-          <div id="gs-mode-text" style="font-size:12px;color:rgba(245,240,232,0.85);line-height:1.5;"></div>
+      <!-- How it Works Modal -->
+      <div id="how-it-works-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeModal('how-it-works-modal')">
+        <div class="modal-box" style="max-width:360px;">
+          <div class="modal-header">
+            <div class="modal-title">How it works</div>
+            <button class="modal-close" onclick="closeModal('how-it-works-modal')">✕</button>
+          </div>
+          <div style="padding:16px;font-size:14px;line-height:1.6;color:var(--text-mid);" id="how-it-works-text"></div>
         </div>
       </div>
 
       <!-- Tabs -->
       <div class="group-tabs">
         <button class="group-tab active" onclick="switchGroupTab('leaderboard')">Leaderboard</button>
-        <button class="group-tab" onclick="switchGroupTab('picks')">My Picks</button>
         <button class="group-tab" onclick="switchGroupTab('members')">Members</button>
-        <button class="group-tab gs-history-tab hidden" onclick="switchGroupTab('history')">History</button>
         <button class="group-tab gs-season-tab hidden" onclick="switchGroupTab('season')">Season</button>
-        <button class="group-tab gs-bonus-tab hidden" onclick="switchGroupTab('bonusbets')">⭐ Bonus Bets</button>
         <button class="group-tab gs-hof-tab hidden" onclick="switchGroupTab('hof')">Hall of Fame</button>
       </div>
 
@@ -1584,69 +1594,63 @@
           </div>
           <div id="gs-golf-leaderboard-list"></div>
         </div>
+        <!-- Inline My Picks (hidden when deadline passed) -->
+        <div id="gs-inline-picks" class="hidden" style="margin-top:24px;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light);margin-bottom:14px;padding-top:20px;border-top:2px solid var(--cream-deeper);">🎯 My Picks</div>
+          <div class="picks-status-bar open" id="gs-picks-status-bar">
+            <div>
+              <div class="ps-text" id="gs-picks-status-text">Picks open</div>
+              <div class="ps-sub" id="gs-picks-status-sub">Deadline: Wednesday 22:00 CET</div>
+            </div>
+          </div>
+          <div id="gs-field-loader" style="margin-bottom:14px;">
+            <div id="gs-field-status" style="font-size:13px;color:var(--text-light);margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+              <span id="gs-field-count">Noch kein Starterfeld geladen</span>
+            </div>
+            <div id="gs-field-disclaimer" class="hidden" style="font-size:12px;line-height:1.5;padding:8px 12px;border-radius:8px;margin-bottom:8px;background:var(--cream-dark);"></div>
+            <button class="btn btn-secondary btn-full btn-sm" id="gs-load-field-btn" onclick="loadPlayerFieldManual()">
+              ↻ Starterfeld von ESPN laden
+            </button>
+          </div>
+          <div class="region-pick-slot" id="slot-usa">
+            <div class="region-label usa">🇺🇸 United States</div>
+            <div class="pick-search-wrap">
+              <input class="pick-search-input" id="search-usa" placeholder="Search USA players..." oninput="filterPlayers('usa')" onfocus="showDropdown('usa')" autocomplete="off" />
+              <div class="pick-dropdown hidden" id="dropdown-usa"></div>
+            </div>
+            <div class="selected-pick-display hidden" id="selected-usa">
+              <div><div class="pick-name" id="selected-usa-name"></div><div class="pick-country" id="selected-usa-country"></div></div>
+              <button onclick="clearPick('usa')">✕</button>
+            </div>
+          </div>
+          <div class="region-pick-slot" id="slot-europe">
+            <div class="region-label europe">🇪🇺 Europe</div>
+            <div class="pick-search-wrap">
+              <input class="pick-search-input" id="search-europe" placeholder="Search European players..." oninput="filterPlayers('europe')" onfocus="showDropdown('europe')" autocomplete="off" />
+              <div class="pick-dropdown hidden" id="dropdown-europe"></div>
+            </div>
+            <div class="selected-pick-display hidden" id="selected-europe">
+              <div><div class="pick-name" id="selected-europe-name"></div><div class="pick-country" id="selected-europe-country"></div></div>
+              <button onclick="clearPick('europe')">✕</button>
+            </div>
+          </div>
+          <div class="region-pick-slot" id="slot-row">
+            <div class="region-label row">🌏 Rest of World</div>
+            <div class="pick-search-wrap">
+              <input class="pick-search-input" id="search-row" placeholder="Search Rest of World players..." oninput="filterPlayers('row')" onfocus="showDropdown('row')" autocomplete="off" />
+              <div class="pick-dropdown hidden" id="dropdown-row"></div>
+            </div>
+            <div class="selected-pick-display hidden" id="selected-row">
+              <div><div class="pick-name" id="selected-row-name"></div><div class="pick-country" id="selected-row-country"></div></div>
+              <button onclick="clearPick('row')">✕</button>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-full save-picks-btn" id="gs-save-picks-btn" onclick="savePicks()">Save Picks</button>
+        </div>
       </div>
 
-      <!-- Tab: My Picks -->
-      <div id="gs-tab-picks" class="group-tab-panel hidden">
-        <div class="picks-status-bar open" id="gs-picks-status-bar">
-          <div>
-            <div class="ps-text" id="gs-picks-status-text">Picks open</div>
-            <div class="ps-sub" id="gs-picks-status-sub">Deadline: Wednesday 22:00 CET</div>
-          </div>
-        </div>
-
-        <!-- Player field loader -->
-        <div id="gs-field-loader" style="margin-bottom:14px;">
-          <div id="gs-field-status" style="font-size:13px;color:var(--text-light);margin-bottom:8px;display:flex;align-items:center;gap:8px;">
-            <span id="gs-field-count">Noch kein Starterfeld geladen</span>
-          </div>
-          <div id="gs-field-disclaimer" class="hidden" style="font-size:12px;line-height:1.5;padding:8px 12px;border-radius:8px;margin-bottom:8px;background:var(--cream-dark);"></div>
-          <button class="btn btn-secondary btn-full btn-sm" id="gs-load-field-btn" onclick="loadPlayerFieldManual()">
-            ↻ Starterfeld von ESPN laden
-          </button>
-        </div>
-
-        <!-- USA Pick -->
-        <div class="region-pick-slot" id="slot-usa">
-          <div class="region-label usa">🇺🇸 United States</div>
-          <div class="pick-search-wrap">
-            <input class="pick-search-input" id="search-usa" placeholder="Search USA players..." oninput="filterPlayers('usa')" onfocus="showDropdown('usa')" autocomplete="off" />
-            <div class="pick-dropdown hidden" id="dropdown-usa"></div>
-          </div>
-          <div class="selected-pick-display hidden" id="selected-usa">
-            <div><div class="pick-name" id="selected-usa-name"></div><div class="pick-country" id="selected-usa-country"></div></div>
-            <button onclick="clearPick('usa')">✕</button>
-          </div>
-        </div>
-
-        <!-- Europe Pick -->
-        <div class="region-pick-slot" id="slot-europe">
-          <div class="region-label europe">🇪🇺 Europe</div>
-          <div class="pick-search-wrap">
-            <input class="pick-search-input" id="search-europe" placeholder="Search European players..." oninput="filterPlayers('europe')" onfocus="showDropdown('europe')" autocomplete="off" />
-            <div class="pick-dropdown hidden" id="dropdown-europe"></div>
-          </div>
-          <div class="selected-pick-display hidden" id="selected-europe">
-            <div><div class="pick-name" id="selected-europe-name"></div><div class="pick-country" id="selected-europe-country"></div></div>
-            <button onclick="clearPick('europe')">✕</button>
-          </div>
-        </div>
-
-        <!-- Rest of World Pick -->
-        <div class="region-pick-slot" id="slot-row">
-          <div class="region-label row">🌏 Rest of World</div>
-          <div class="pick-search-wrap">
-            <input class="pick-search-input" id="search-row" placeholder="Search Rest of World players..." oninput="filterPlayers('row')" onfocus="showDropdown('row')" autocomplete="off" />
-            <div class="pick-dropdown hidden" id="dropdown-row"></div>
-          </div>
-          <div class="selected-pick-display hidden" id="selected-row">
-            <div><div class="pick-name" id="selected-row-name"></div><div class="pick-country" id="selected-row-country"></div></div>
-            <button onclick="clearPick('row')">✕</button>
-          </div>
-        </div>
-
-        <button class="btn btn-primary btn-full save-picks-btn" id="gs-save-picks-btn" onclick="savePicks()">Save Picks</button>
-      </div>
+      <!-- Tab: My Picks (legacy hidden – content is now in gs-inline-picks inside leaderboard tab) -->
+      <div id="gs-tab-picks" class="group-tab-panel hidden"></div>
 
       <!-- Tab: Members -->
       <div id="gs-tab-members" class="group-tab-panel hidden">
@@ -1667,26 +1671,26 @@
         </div>
       </div>
 
-      <!-- Tab: History / Season Tournaments -->
+      <!-- Tab: History (legacy hidden) -->
       <div id="gs-tab-history" class="group-tab-panel hidden">
+        <div id="gs-history-list-legacy"></div>
+      </div>
+
+      <!-- Tab: Season (combined: Standings + History) -->
+      <div id="gs-tab-season" class="group-tab-panel hidden">
         <!-- Add tournament button (season mode, owner only) -->
         <div id="gs-add-tournament-section" class="hidden" style="margin-bottom:16px;">
           <button class="create-group-btn" style="margin-bottom:0" onclick="openAddTournamentModal()">
             <span style="font-size:20px">＋</span> Add Tournament to Season
           </button>
         </div>
-        <div id="gs-history-list">
-          <div class="empty-state"><div class="empty-icon">📋</div><p>No tournaments added yet.</p></div>
-        </div>
-      </div>
-
-      <!-- Tab: Saison-Wertung -->
-      <div id="gs-tab-season" class="group-tab-panel hidden">
-        <div style="font-size:12px;color:var(--text-light);margin-bottom:16px;background:var(--cream-dark);border-radius:10px;padding:10px 14px;">
-          🏆 <strong>Saison-Wertung:</strong> Normal: 3/2/1 Pt · Signature: 6/4/2 Pt · Major: 9/6/3 Pt · Bei Gleichstand werden die Punkte der betroffenen Plätze gleichmäßig aufgeteilt.
-        </div>
+        <!-- Season standings (Punkte, Letzte Plätze, Turnier-Ergebnisse) -->
         <div id="gs-season-standings">
           <div class="empty-state"><div class="empty-icon">🏆</div><p>Noch keine Ergebnisse.</p></div>
+        </div>
+        <!-- Tournament list (History) -->
+        <div id="gs-history-list" style="margin-top:20px;">
+          <div class="empty-state"><div class="empty-icon">📋</div><p>No tournaments added yet.</p></div>
         </div>
       </div>
 
@@ -2604,9 +2608,8 @@
     }, 10 * 60 * 1000);
 
     const fmt = window._group.data.format;
-    document.querySelectorAll('.gs-history-tab').forEach(t => t.classList.toggle('hidden', fmt === 'single'));
+    // History is merged into Season tab; Bonus Bets removed from nav
     document.querySelectorAll('.gs-season-tab').forEach(t => t.classList.toggle('hidden', fmt !== 'season' && fmt !== 'major_slam'));
-    document.querySelectorAll('.gs-bonus-tab').forEach(t => t.classList.toggle('hidden', fmt !== 'season' && fmt !== 'major_slam'));
     document.querySelectorAll('.gs-hof-tab').forEach(t => t.classList.toggle('hidden', fmt !== 'major_slam'));
     if (fmt === 'season') renderHistory();
   };
@@ -2621,19 +2624,25 @@
   };
 
   window.switchGroupTab = (tab) => {
+    // Map old tab names to new ones
+    if (tab === 'picks' || tab === 'history' || tab === 'bonusbets') tab = 'leaderboard';
     ['leaderboard','picks','members','history','season','bonusbets','hof'].forEach(t => {
       document.getElementById(`gs-tab-${t}`)?.classList.toggle('hidden', t !== tab);
     });
-    document.querySelectorAll('.group-tab').forEach((btn, i) => {
-      const tabs = ['leaderboard','picks','members','history','season','bonusbets','hof'];
-      btn.classList.toggle('active', tabs[i] === tab);
+    document.querySelectorAll('.group-tab').forEach(btn => {
+      const t = btn.getAttribute('onclick')?.match(/switchGroupTab\('(\w+)'\)/)?.[1];
+      btn.classList.toggle('active', t === tab);
     });
-    if (tab === 'picks')       renderPicksTab();
-    if (tab === 'history')     renderHistory();
-    if (tab === 'leaderboard') renderGolfLeaderboard();
-    if (tab === 'season')      renderSeasonStandings();
-    if (tab === 'bonusbets')   renderBonusBetsSection();
+    if (tab === 'leaderboard') { renderGolfLeaderboard(); renderPicksTab(); }
+    if (tab === 'season')      { renderSeasonStandings(); renderHistory(); }
     if (tab === 'hof')         renderHallOfFame();
+  };
+
+  window.openHowItWorksModal = () => {
+    const txt = document.getElementById('gs-mode-text')?.textContent || '';
+    const el  = document.getElementById('how-it-works-text');
+    if (el) el.textContent = txt;
+    openModal('how-it-works-modal');
   };
 
   function renderGroupBanner() {
@@ -2679,6 +2688,7 @@
       major_slam: '🌍 Pick 3 players (USA · Europe · RoW) per Major. Each player can only be picked once per season across all 5 events. Lowest combined score wins.',
       season:     '🌍 Pick 3 players (USA · Europe · RoW) per tournament. Each player can only be picked once per season — no repeats! Lowest combined score wins.',
     };
+    // Store mode text for the ? modal (div is hidden, used as data holder)
     const modeEl = document.getElementById('gs-mode-text');
     if (modeEl) modeEl.textContent = modeTexts[g.format] || '';
 
@@ -3094,19 +3104,26 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
 
   function renderPicksTab() {
     const locked = window._group.deadlinePassed;
+    // Show/hide the inline picks section in the leaderboard tab
+    document.getElementById('gs-inline-picks')?.classList.toggle('hidden', locked);
+    if (locked) return; // Nothing more to do when locked
     const bar    = document.getElementById('gs-picks-status-bar');
-    bar.className = 'picks-status-bar ' + (locked ? 'closed' : 'open');
-    document.getElementById('gs-picks-status-text').textContent = locked ? '🔒 Picks are locked' : '✏️ Picks open';
-    document.getElementById('gs-picks-status-sub').textContent  = locked ? 'Deadline has passed' : 'Deadline: Wednesday 22:00 CET';
+    if (bar) bar.className = 'picks-status-bar ' + (locked ? 'closed' : 'open');
+    const statusText = document.getElementById('gs-picks-status-text');
+    const statusSub  = document.getElementById('gs-picks-status-sub');
+    if (statusText) statusText.textContent = locked ? '🔒 Picks are locked' : '✏️ Picks open';
+    if (statusSub)  statusSub.textContent  = locked ? 'Deadline has passed' : 'Deadline: Wednesday 22:00 CET';
 
     ['usa','europe','row'].forEach(region => {
       const slot = document.getElementById(`slot-${region}`);
+      if (!slot) return;
       slot.classList.toggle('locked', locked);
       slot.classList.toggle('filled', !!window._group.myPicks[region]);
       renderSelectedPick(region);
     });
 
-    document.getElementById('gs-save-picks-btn').classList.toggle('hidden', locked);
+    const saveBtn = document.getElementById('gs-save-picks-btn');
+    if (saveBtn) saveBtn.classList.toggle('hidden', locked);
   }
 
   function renderSelectedPick(region) {
@@ -3353,6 +3370,8 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
           ${pickDetail}
         </div>`;
     }).join('');
+    // Show/hide inline picks based on deadline
+    document.getElementById('gs-inline-picks')?.classList.toggle('hidden', locked);
     } catch(err) {
       console.error('[WYNN] renderLeaderboard error:', err);
       const list = document.getElementById('gs-leaderboard-list');
@@ -3536,7 +3555,7 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
     renderGroupBanner();
     renderHistory();
     renderLeaderboard();
-    switchGroupTab('history');
+    switchGroupTab('season');
   };
 
   window.resetCompletedTournament = async (tid) => {
@@ -3796,7 +3815,7 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
     renderGroupBanner();
     renderHistory();
     renderLeaderboard();
-    if (g.format === 'season' || g.format === 'major_slam') switchGroupTab('history');
+    if (g.format === 'season' || g.format === 'major_slam') switchGroupTab('season');
   };
 
   /* ── GOLF TOURNAMENT LEADERBOARD ───────────────────────── */
@@ -4122,6 +4141,8 @@ const isMatch     = espnName && activeName && minLen > 0 && (overlap.length / mi
     // Append bonus bets section
     const bbHtml = await renderBonusBetsInStandings(gid);
     if (bbHtml) el.insertAdjacentHTML('beforeend', bbHtml);
+    // Also render the tournament list (formerly History tab) below
+    renderHistory();
   };
 
   async function renderHistory() {
